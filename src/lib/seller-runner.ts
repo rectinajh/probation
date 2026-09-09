@@ -14,16 +14,21 @@ import { getAdapter } from "./adapter-registry";
  */
 const DEFAULT_CATEGORY: Category = "health-factor-monitoring";
 
-function placeholderSession(): Session {
-  // TODO: derive from the real Altana session granted for this job.
-  const zero = "0x0000000000000000000000000000000000000000" as `0x${string}`;
+function sessionFor(job: Record<string, unknown>): Session {
+  // The buyer (job.client) is the account whose position we inspect. Altana
+  // session scoping (allowlist / spend cap / expiry) is a follow-up; observe
+  // stage is read-only so this is safe.
+  const client =
+    typeof job.client === "string" && job.client.startsWith("0x")
+      ? (job.client as `0x${string}`)
+      : ("0x0000000000000000000000000000000000000000" as `0x${string}`);
   return {
-    sessionKey: zero,
-    wallet: zero,
+    sessionKey: client,
+    wallet: client,
     allowlist: [],
     spendCap: 0n,
     expiry: BigInt(Math.floor(Date.now() / 1000)) + 3600n,
-    keystoreRef: "demo",
+    keystoreRef: "erc8183-client",
     revoked: false,
   };
 }
@@ -47,10 +52,8 @@ export async function runSellerRunner() {
     jobOps,
     async (job) => {
       const jobId = job.jobId as number;
-      // TODO: route by actual job category / agent once the Job schema is
-      // confirmed. Defaults to the observe-stage health-factor adapter.
       const adapter = getAdapter(DEFAULT_CATEGORY);
-      const session = placeholderSession();
+      const session = sessionFor(job);
       const { evidence } = await adapter.run(String(jobId), session);
 
       const result = await jobOps.submitResult(jobId, evidence.artifactRef, {
@@ -65,4 +68,3 @@ export async function runSellerRunner() {
     { interval: 30 },
   );
 }
-
