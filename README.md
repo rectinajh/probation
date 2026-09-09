@@ -68,20 +68,43 @@ docs/
 
 ## Status
 
-**Planning / scaffolding.** The market shell, a single real hire loop, and an honest Agent Advantage Report are the v1 scope.
+**Working end-to-end.** A live self-hire loop is running on BSC testnet: ERC-8004
+discovery, a real ERC-8183 escrowed hire (denominated in `$U`), a
+provider-signed negotiation quote, an on-chain Venus health-factor read, and
+optimistic settlement. The demo runs against a custom ERC-8183 deployment with a
+**9-second** dispute window so the full loop is presentable live.
+
+## Live demo
+
+The frontend (`/`) is a one-click product demo:
+
+1. **Run a trial** — escrows 1 U and creates an on-chain ERC-8183 job.
+2. The seller agent reads the position's live Venus health factor and submits
+   evidence on-chain.
+3. After a 9-second optimistic window the job settles and escrow is released.
+
+Terminal equivalent (one command, full loop):
+
+```bash
+pnpm demo 1          # 1 U budget: hire → evidence → 9s window → settle
+pnpm hire 1          # buyer side only (create + fund)
+pnpm settle <jobId>  # finalise after the dispute window
+pnpm security-check 0x…   # read-only wallet authorization scan (Agent Advantage Report)
+```
 
 ## Getting started
 
 ```bash
 cp .env.example .env   # then fill each value — see docs/ENV.md
 pnpm install
-pnpm dev
+pnpm dev               # frontend (live trial)
+pnpm seller-runner     # provider side (poll + submit deliverable)
 ```
 
-## Planned stack
+## Stack
 
-- Frontend: Next.js / React / TypeScript, wallet via wagmi
-- Onchain: `@bnbagent/sdk` (ERC-8004 identity / ERC-8183 hire / x402 per-request payments)
-- Discovery: 8004scan API (ERC-8004; free Pro-tier during the hackathon)
-- Authorization: Altana EIP-7702 session keys (allowlist / spend cap / expiry / revocation)
-- Network: BSC testnet (mainnet per judging requirements)
+- Frontend: Next.js (App Router) / React / TypeScript
+- Onchain: `@bnbagent/sdk` (ERC-8004 identity / ERC-8183 hire & escrow / signed quotes)
+- Discovery: 8004scan API (ERC-8004)
+- Authorization: Altana EIP-7702 session keys (staged authority; observe stage ships read-only)
+- Network: BSC testnet (demo stack) + mainnet addresses for the security scan

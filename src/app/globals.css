@@ -1,19 +1,440 @@
 :root {
   color-scheme: dark;
+
+  --bg: #070a13;
+  --bg-soft: #0d1120;
+  --card: #111729;
+  --card-2: #161e33;
+  --border: #232c45;
+  --border-soft: #1a2238;
+
+  --text: #eef1f8;
+  --text-dim: #a7b0c3;
+  --text-faint: #6b768e;
+
+  --gold: #f0b90b;
+  --gold-soft: #f8d05a;
+  --blue: #5b8cff;
+  --violet: #8b5cf6;
+  --green: #2dd4a0;
+  --green-dim: #123b30;
+  --red: #ff6b6b;
+  --red-dim: #3a1820;
+  --amber: #f59e0b;
+
+  --radius: 14px;
+  --radius-lg: 20px;
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
 }
 
 * {
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
-  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
-  background: #0b1020;
-  color: #e6e9f0;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(91, 140, 255, 0.12), transparent 60%),
+    radial-gradient(900px 500px at 0% 0%, rgba(240, 185, 11, 0.07), transparent 55%),
+    var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
-  color: #7aa2ff;
+  color: var(--blue);
+  text-decoration: none;
 }
 
+a:hover {
+  text-decoration: underline;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.88em;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.12em 0.38em;
+  border-radius: 6px;
+}
+
+.container {
+  width: min(1080px, calc(100% - 2.5rem));
+  margin: 0 auto;
+}
+
+.muted {
+  color: var(--text-dim);
+}
+
+.faint {
+  color: var(--text-faint);
+}
+
+/* ------------------------------------------------------------------ hero */
+.hero {
+  padding: 5.5rem 0 3rem;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold-soft);
+  background: rgba(240, 185, 11, 0.08);
+  border: 1px solid rgba(240, 185, 11, 0.22);
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+}
+
+.hero h1 {
+  font-size: clamp(2.4rem, 5vw, 4rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  margin: 1.1rem 0 1rem;
+  max-width: 16ch;
+}
+
+.hero h1 em {
+  font-style: normal;
+  background: linear-gradient(90deg, var(--gold-soft), var(--gold));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero .lede {
+  font-size: 1.18rem;
+  color: var(--text-dim);
+  max-width: 58ch;
+  margin: 0 0 1.75rem;
+}
+
+.hero-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem 2.5rem;
+  margin-top: 2.5rem;
+}
+
+.stat .num {
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.stat .label {
+  font-size: 0.85rem;
+  color: var(--text-faint);
+}
+
+/* ----------------------------------------------------------------- cards */
+.card {
+  background: linear-gradient(180deg, var(--card-2), var(--card));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+}
+
+.grid {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 760px) {
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --------------------------------------------------------------- buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 0.7rem 1.15rem;
+  cursor: pointer;
+  transition: transform 0.08s ease, filter 0.15s ease, background 0.15s ease;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+.btn-primary {
+  background: linear-gradient(180deg, var(--gold-soft), var(--gold));
+  color: #14100a;
+}
+
+.btn-primary:not(:disabled):hover {
+  filter: brightness(1.05);
+}
+
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.btn-ghost:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ----------------------------------------------------------------- forms */
+.field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.field label {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+input,
+textarea,
+select {
+  width: 100%;
+  background: #0a0f1d;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  padding: 0.65rem 0.8rem;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(240, 185, 11, 0.12);
+}
+
+/* ------------------------------------------------------------------ pills */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+
+.pill .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.pill.ok {
+  color: var(--green);
+  border-color: rgba(45, 212, 160, 0.3);
+  background: rgba(45, 212, 160, 0.08);
+}
+
+.pill.bad {
+  color: var(--red);
+  border-color: rgba(255, 107, 107, 0.3);
+  background: rgba(255, 107, 107, 0.08);
+}
+
+.pill.warn {
+  color: var(--amber);
+  border-color: rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+/* ---------------------------------------------------------------- steps */
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  counter-reset: step;
+}
+
+@media (max-width: 760px) {
+  .steps {
+    grid-template-columns: 1fr;
+  }
+}
+
+.step {
+  position: relative;
+  padding: 1.4rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.step .idx {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.step h3 {
+  margin: 0.5rem 0 0.4rem;
+  font-size: 1.05rem;
+}
+
+.step p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.92rem;
+}
+
+/* ------------------------------------------------------------- timeline */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.tstep {
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+}
+
+.tstep .ring {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  display: grid;
+  place-items: center;
+  font-size: 0.8rem;
+  color: var(--text-faint);
+  background: var(--bg-soft);
+}
+
+.tstep.done .ring {
+  border-color: var(--green);
+  color: var(--green);
+  background: var(--green-dim);
+}
+
+.tstep.active .ring {
+  border-color: var(--gold);
+  color: var(--gold);
+  animation: pulse 1.4s infinite;
+}
+
+.tstep .t-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.tstep .t-sub {
+  color: var(--text-faint);
+  font-size: 0.82rem;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(240, 185, 11, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(240, 185, 11, 0);
+  }
+}
+
+/* ------------------------------------------------------------- evidence */
+.metric {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+  background: var(--bg-soft);
+}
+
+.metric .k {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+}
+
+.metric .v {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-top: 0.2rem;
+}
+
+.verdict {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  border-radius: var(--radius);
+  padding: 1.1rem 1.2rem;
+  border: 1px solid;
+}
+
+.verdict.healthy {
+  background: var(--green-dim);
+  border-color: rgba(45, 212, 160, 0.35);
+  color: var(--green);
+}
+
+.verdict.at-risk {
+  background: var(--red-dim);
+  border-color: rgba(255, 107, 107, 0.35);
+  color: var(--red);
+}
+
+.verdict .big {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.section-title {
+  font-size: 1.6rem;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.5rem;
+}
+
+.section-sub {
+  color: var(--text-dim);
+  max-width: 62ch;
+  margin: 0 0 1.75rem;
+}
+
+section.block {
+  padding: 3.5rem 0;
+  border-top: 1px solid var(--border-soft);
+}

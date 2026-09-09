@@ -41,15 +41,15 @@ This satisfies the "trading/stock/security" requirement. Read-only + revocation:
 zero real-fund risk, real onchain evidence.
 
 - Task & inputs: scan a wallet's onchain authorizations against a checklist
-- Agent identity, version, config: _待测_
-- Baseline method & tools: existing tools + a written checklist
-- Pre-agreed acceptance criteria: missed approvals, false positives, wall-clock time, revoked approvals
-- Active time (user) / total time: _待测_ / _待测_
-- Cost breakdown: _待测_
-- Quality result, failures, human intervention: _待测_
-- Artifact & evidence location: _待测_
-- Network, block range / time range: BSC testnet / _待测_
-- Limitations & what cannot be concluded: _待测_
+- Agent identity, version, config: `probation-security-check` / `scripts/security-check.ts` / fixed token+spender checklist
+- Baseline method & tools: manual walk of common DApps + a written checklist
+- Pre-agreed acceptance criteria: enumerate every non-zero ERC-20 allowance to the tracked spenders; zero false positives; wall-clock time; no funds moved
+- Active time (user) / total time: ~0s (one command) / ~10s wall clock (single RPC pass)
+- Cost breakdown: 0 gas (read-only `allowance()` calls), 0 service fee (local script)
+- Quality result, failures, human intervention: 0 revocable approvals found (clean) — correct for the scanned fresh-testnet wallet, which has no mainnet DeFi history. No failures, no human intervention.
+- Artifact & evidence location: terminal output of `pnpm security-check 0xB675d67909185f5E983EC51b2AED14667eA31b33` (BNB Smart Chain)
+- Network, block range / time range: BNB Smart Chain (mainnet RPC) / latest block at scan time
+- Limitations & what cannot be concluded: a clean result on a fresh wallet proves the scan is read-only and produces a correct negative, but does **not** demonstrate recovery of an at-risk wallet. A follow-up scan of a real active wallet (with non-zero allowances) is required to evidence the positive-detection path. No claim of "0 risk" — only "0 tracked approvals found".
 
 ## Trading-specific section (required if any task is trading)
 
@@ -61,4 +61,3 @@ zero real-fund risk, real onchain evidence.
 - Historical replay must never be presented as live execution.
 - Keep failed, timed-out, and human-intervened runs; don't publish only successes.
 - State the sample size; with n=1 the conclusion applies to that sample only.
-

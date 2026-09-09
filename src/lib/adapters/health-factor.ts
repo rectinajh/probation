@@ -14,6 +14,47 @@ const comptrollerAbi = parseAbi([
 // This is read-only, so it never moves funds.
 const DEFAULT_COMPTROLLER = "0x94d1820b2D1c7c7452A163983Dc888CEC546b77D";
 
+export interface HealthFactor {
+  errCode: bigint;
+  liquidity: bigint;
+  shortfall: bigint;
+  /** shortfall > 0 means the account is below its borrow limit (at risk). */
+  status: "healthy" | "at-risk";
+}
+
+/**
+ * Read the live Venus account liquidity for `account`. Deterministic and
+ * read-only, so it can be re-run on demand (both by the seller and by the
+ * buyer-facing API) without a shared store.
+ */
+export async function readHealthFactor(
+  account: `0x${string}`,
+): Promise<HealthFactor> {
+  const rpcUrl = process.env.RPC_URL ?? "https://bsc-testnet-rpc.publicnode.com";
+  const comptroller = (process.env.VENUS_COMPTROLLER ??
+    DEFAULT_COMPTROLLER) as `0x${string}`;
+
+  const client = createPublicClient({
+    chain: bscTestnet,
+    transport: http(rpcUrl),
+  });
+
+  const result = (await client.readContract({
+    address: comptroller,
+    abi: comptrollerAbi,
+    functionName: "getAccountLiquidity",
+    args: [account],
+  })) as [bigint, bigint, bigint];
+
+  const [errCode, liquidity, shortfall] = result;
+  return {
+    errCode,
+    liquidity,
+    shortfall,
+    status: shortfall > 0n ? "at-risk" : "healthy",
+  };
+}
+
 /**
  * Observe-stage health-factor monitor. Read-only, no fund movement. Reads the
  * Venus Comptroller's getAccountLiquidity to report real liquidation risk.
@@ -30,26 +71,9 @@ export const healthFactorAdapter: ServiceAdapter = {
   },
 
   async run(job: string, session: Session): Promise<RunResult> {
-    const rpcUrl = process.env.RPC_URL ?? "https://bsc-testnet-rpc.publicnode.com";
-    const comptroller = (process.env.VENUS_COMPTROLLER ??
-      DEFAULT_COMPTROLLER) as `0x${string}`;
-
-    const client = createPublicClient({
-      chain: bscTestnet,
-      transport: http(rpcUrl),
-    });
-
-    const result = (await client.readContract({
-      address: comptroller,
-      abi: comptrollerAbi,
-      functionName: "getAccountLiquidity",
-      args: [session.wallet],
-    })) as [bigint, bigint, bigint];
-
-    const [, liquidity, shortfall] = result;
-
-    // shortfall > 0 means the account is below its borrow limit (at risk).
-    const status = shortfall > 0n ? "at-risk" : "healthy";
+    const { liquidity, shortfall, status } = await readHealthFactor(
+      session.wallet,
+    );
 
     const evidence: Evidence = {
       evidenceId: `${job}-health-factor`,
