@@ -1,4 +1,5 @@
 import { HireFlow } from "@/components/hire-flow";
+import { DiscoverAgents } from "@/components/discover-agents";
 
 export default function Home() {
   return (
@@ -8,6 +9,7 @@ export default function Home() {
         Hire an agent for a bounded, real-world trial. Inspect verifiable
         results. Then decide whether to grant broader authority.
       </p>
+      <DiscoverAgents />
       <HireFlow />
     </main>
   );
