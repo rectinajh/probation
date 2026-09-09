@@ -41,11 +41,17 @@ export async function runSellerRunner() {
     privateKey: process.env.PRIVATE_KEY, // first-run import in a fresh container
   });
 
+  // Minimum budget this provider accepts, in raw "U" units (18 decimals).
+  // Set ERC8183_SERVICE_PRICE=0 for a zero-budget demo job.
+  const servicePrice = process.env.ERC8183_SERVICE_PRICE
+    ? BigInt(process.env.ERC8183_SERVICE_PRICE)
+    : 1n * 10n ** 18n;
+
   const jobOps = await ERC8183JobOps.create({
     walletProvider: wallet,
     network: process.env.NETWORK ?? "bsc-testnet",
     storageProvider: new LocalStorageProvider("./.agent-data"),
-    servicePrice: 1n * 10n ** 18n,
+    servicePrice,
     agentUrl: process.env.ERC8183_AGENT_URL,
   });
 

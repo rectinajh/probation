@@ -11,7 +11,8 @@
     "lint": "next lint",
     "seller-runner": "tsx scripts/run-seller.ts",
     "register-agent": "tsx scripts/register-agent.ts",
-    "security-check": "tsx scripts/security-check.ts"
+    "security-check": "tsx scripts/security-check.ts",
+    "hire": "tsx scripts/hire.ts"
   },
   "dependencies": {
     "@bnbagent/sdk": "^0.5.5",

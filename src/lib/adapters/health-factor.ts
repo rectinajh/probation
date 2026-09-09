@@ -4,12 +4,15 @@ import type { Evidence, Session, TrialSpec } from "../domain";
 import type { Quote, RunResult, ServiceAdapter } from "../service-adapter";
 
 const comptrollerAbi = parseAbi([
-  "function getAccountLiquidity(address account) view returns (uint256 error, uint256 liquidity, uint256 shortfall)",
+  // NOTE: the first return value is named `errCode` here because abitype's
+  // human-readable ABI parser rejects `error` (a protected Solidity keyword).
+  "function getAccountLiquidity(address account) view returns (uint256 errCode, uint256 liquidity, uint256 shortfall)",
 ]);
 
-// Venus Unitroller (Comptroller) on BSC mainnet. Override with VENUS_COMPTROLLER
-// for testnet. This is read-only, so it never moves funds.
-const DEFAULT_COMPTROLLER = "0xfD36E2c2a6789Db23113685031d7F16329158384";
+// Venus Unitroller (Comptroller proxy) on BSC testnet (chain 97). Override with
+// VENUS_COMPTROLLER for mainnet (0xfD36E2c2a6789Db23113685031d7F16329158384).
+// This is read-only, so it never moves funds.
+const DEFAULT_COMPTROLLER = "0x94d1820b2D1c7c7452A163983Dc888CEC546b77D";
 
 /**
  * Observe-stage health-factor monitor. Read-only, no fund movement. Reads the

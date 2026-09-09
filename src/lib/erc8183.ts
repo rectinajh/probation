@@ -31,9 +31,12 @@ export async function hireAgent(input: HireInput) {
     description: input.description,
   });
   await client.registerJob(jobId!);
+  // The kernel requires setBudget() to be called before fund(): fund() reverts
+  // with ZeroBudget() when jobHasBudget is false, regardless of the amount.
+  // A zero budget is legal (a "free job") — it just skips the token transfer.
+  await client.setBudget(jobId!, input.budget);
   await client.fund(jobId!, input.budget);
 
   const job = await client.getJob(jobId!);
   return { jobId, status: JobStatus[job.status] };
 }
-
