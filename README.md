@@ -88,6 +88,8 @@ The frontend (`/`) is a one-click product demo:
 
 ![PROBATION full page](docs/screenshots/home-full.png)
 
+![PROBATION trial complete](docs/screenshots/trial-complete.png)
+
 Terminal equivalent (one command, full loop):
 
 ```bash
