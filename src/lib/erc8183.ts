@@ -24,8 +24,13 @@ export interface HireInput {
 export async function hireAgent(input: HireInput) {
   loadEnv();
 
+  // In-memory wallet: Vercel serverless has a read-only filesystem, so the
+  // SDK's default keystore persistence (~/.bnbagent/wallets) would fail. The
+  // private key is held only in process memory for the life of the request.
   const wallet = new EVMWalletProvider({
     password: process.env.WALLET_PASSWORD!,
+    privateKey: process.env.PRIVATE_KEY,
+    persist: false,
   });
   const client = await ERC8183Client.create({
     walletProvider: wallet,

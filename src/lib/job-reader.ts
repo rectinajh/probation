@@ -23,6 +23,8 @@ function client(): Promise<ERC8183Client> {
     loadEnv();
     const wallet = new EVMWalletProvider({
       password: process.env.WALLET_PASSWORD!,
+      privateKey: process.env.PRIVATE_KEY,
+      persist: false,
     });
     clientPromise = ERC8183Client.create({
       walletProvider: wallet,
