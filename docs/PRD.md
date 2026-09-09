@@ -1,43 +1,43 @@
-# PROBATION 产品需求文档（PRD）
+# PROBATION Product Requirements Document (PRD)
 
-## 1. 背景与问题
+## 1. Background & problem
 
-用户面对一堆金融 Agent，看到的通常是宣传、评分和收益截图，不知道哪个真正适合自己。为了验证能力，又往往被要求先充值、授权或提供敏感数据。这形成一个矛盾：
+Facing a pile of finance agents, a user sees marketing, ratings, and return screenshots — not which one actually fits their task. To verify capability, they're often asked to deposit, authorize, or hand over sensitive data first. That creates a contradiction:
 
-> **我需要证据才能信任你，但你要求我先信任你，才提供证据。**
+> **I need evidence to trust you, but you demand I trust you before you'll give evidence.**
 
-PROBATION 改变这个顺序：**证据先于信任，权限跟随用户决定。**
+PROBATION reverses the order: **evidence before trust, authority follows the user's decision.**
 
-## 2. 目标与用户
+## 2. Goals & users
 
-- **目标用户**：BSC 上的散户 DeFi 用户，想用 AI Agent 管理 LP / 网格 / 收益 / 借贷仓位，但无法判断哪个 Agent 真能用、真值钱。
-- **核心产出**：用户付出清楚的费用、授予有限的权限，获得**值得购买的实际结果**，并保留继续或离开的选择。
-- **不是**：评测网站、评分平台、收益截图站。
+- **Target user**: retail DeFi users on BSC who want AI agents to manage LP / grid / yield / lending positions, but can't tell which agent really works and is really worth paying.
+- **Core outcome**: the user pays a clear fee, grants limited authority, receives a **result worth buying**, and keeps the choice to continue or leave.
+- **Not**: a review site, a rating platform, a return-screenshot gallery.
 
-## 3. 核心机制：试工是一份约定，不是一次聊天
+## 3. Core mechanism: a trial is a contract, not a chat
 
-每份试工用统一的 `Trial Spec` 提前确定（见 §5）。三笔钱必须区分：
+Every trial is fixed up front by a unified `Trial Spec` (see §5). Three sums of money must be separated:
 
-1. **服务费**：付给卖方 Agent / 平台的钱。
-2. **实际操作本金**：任务可能动用的用户资产。
-3. **网络与调用成本**：gas、API 调用等。
+1. **Service fee** — paid to the seller agent / platform.
+2. **Execution principal** — the user's assets a task may move.
+3. **Network & call costs** — gas, API calls, etc.
 
-购买服务**不自动授予**卖方操作用户资金的权限。
+Buying a service does **not** automatically grant the seller permission to move user funds.
 
-## 4. 四类 Agent 覆盖（主赛道硬要求）
+## 4. Four-category coverage (main-track bar)
 
-| 类别 | 试工任务 | 用户应拿到的证据 | 不能错误宣称 |
+| Category | Trial task | Evidence the user should get | Must not claim |
 |---|---|---|---|
-| Rebalancing | 检查指定仓位，按约定条件提出调整并执行获准操作 | 输入状态、计算依据、交易、调整后仓位、成本 | 一次成功调仓 = 长期高收益 |
-| Grid Trading | 在明确预算和参数下创建、跟踪及停止一组订单 | 订单状态、成交/撤单记录、资金占用、费用 | 挂单成功 = 成交，或网格必然盈利 |
-| Yield Optimisation | 比较限定范围的收益来源，符合条件时执行受限迁移 | 数据时点、费用、限制、迁移结果或不迁移理由 | 名义 APR = 用户实际收益 |
-| Health Factor Monitoring | 监测指定借贷仓位并按约定触发告警或获准响应 | 观察时点、计算依据、触发记录、响应结果 | 有监控 = 不会清算 |
+| Rebalancing | Inspect a position, propose adjustments per agreed conditions, execute approved actions | Input state, calculation basis, transactions, post-adjustment position, cost | One good rebalance = long-term outperformance |
+| Grid Trading | Create, track, stop a set of orders within explicit budget and parameters | Order states, fill/cancel records, capital usage, fees | Placing orders = fills, or grids always profit |
+| Yield Optimisation | Compare a bounded set of yield sources, execute a bounded migration when conditions hold | Data timestamps, fees, limits, migration result or reason not to migrate | Nominal APR = realized user return |
+| Health Factor Monitoring | Monitor a lending position and fire alerts or approved responses per agreement | Observation timestamps, calculation basis, trigger records, response results | Monitoring = no liquidation |
 
-「数据不足，不执行」「条件未满足，不采取行动」可以是合理交付，但必须有证据，不能成为万能借口。
+"Insufficient data, no decision" and "conditions not met, no action" can be valid deliverables, but they must carry evidence — not become a universal excuse for doing nothing.
 
-## 5. Trial Spec（数据契约）
+## 5. Trial Spec (data contract)
 
-统一字段（名称可调，含义不可省）：
+Unified fields (names negotiable, meaning non-negotiable):
 
 ```text
 taskId
@@ -57,43 +57,43 @@ dataFreshnessRequirements
 failureAndRefundPolicy
 ```
 
-试工记录绑定 **agent 版本、配置、任务范围、时间**。服务更新后不能无条件沿用旧版本成绩。
+A trial record is bound to **agent version, configuration, task scope, and time**. After an agent updates, old-version results must not be carried forward unconditionally.
 
-## 6. 授权分阶段
+## 6. Staged authorization
 
-- **观察阶段**：只给完成任务所需最少数据，不给 DeFi 执行权。服务费与资产操作权限分离。
-- **有限执行阶段**：用户明确同意范围 / 金额 / 期限 / 对象后，才执行受限任务（逐笔签名，或经验证的有限 session）。
-- **持续合作阶段**：用户看完证据后，主动确认新合同与新权限。旧试工不得被解释为永久授权。
+- **Observe stage**: only the minimum data needed for the task; no DeFi execution rights. Service fee is separated from asset-operation authority.
+- **Limited-execution stage**: a bounded task runs only after the user explicitly agrees to scope / amount / duration / target (per-transaction signature, or a verified limited session).
+- **Ongoing stage**: the user reviews evidence, then actively confirms a new contract and new authority. An old trial must not be read as permanent authorization.
 
-落地：**Altana EIP-7702 session key**（call allowlist / spend cap / expiry / 链上 Keystore 注册 / 一键撤销）。注意三件事：支出上限≠亏损上限；撤销未来权限≠撤销已完成交易；停止 Agent≠自动平仓或取消所有订单。
+Implementation: **Altana EIP-7702 session keys** (call allowlist / spend cap / expiry / onchain Keystore registration / one-click revocation). Three caveats: a spend cap is not a loss cap; revoking future authority does not undo completed transactions; stopping an agent does not auto-close or cancel all orders.
 
-## 7. 核心页面（5 屏）
+## 7. Core screens (5)
 
-| 页面 | 用户要完成的事 |
+| Screen | What the user accomplishes |
 |---|---|
-| 任务市场 | 按任务和四类服务找到真实可用 Agent |
-| 服务详情与比较 | 理解价格、能力、限制、权限、历史证据、试工范围 |
-| 试工订单 | 确认输入、费用、执行预算、验收条件、授权 |
-| 任务工作台 | 查看进度、成本、异常、待确认操作 |
-| 证据与后续合作 | 检查交付，结束/继续合作，查看与撤销权限 |
+| Task marketplace | Find real, usable agents by task and category |
+| Service detail & compare | Understand price, capability, limits, permissions, history, trial scope |
+| Trial order | Confirm inputs, fee, execution budget, acceptance criteria, authorization |
+| Task workbench | Track progress, cost, anomalies, pending approvals |
+| Evidence & next steps | Inspect the deliverable, end/continue, view & revoke permissions |
 
-三态分标记：**服务商声明 / 平台本次实测 / 第三方历史记录**。没有可靠数据就显示缺失，不补造收益率、客户数、胜率。
+Three-state provenance labels: **provider claim / platform live test / third-party history**. Show missing states when there's no reliable data; never fabricate returns, customer counts, or win rates.
 
-## 8. 评审要求
+## 8. Judging requirements
 
-**主赛道**（Functionality / Data Quality / Agent Diversity）：四类同等深度，陌生人零指导能完成「发现→比较→雇佣→看结果」。
+**Main track** (Functionality / Data Quality / Agent Diversity): all four categories at equal depth; a stranger completes "discover → compare → hire → see result" with zero instructions.
 
-**TermiX**：`Agent Advantage Report`——≥3 个真实任务双路对照（时间 / 成本 / 质量 + 实际产出），至少一个交易/股票/安全。**安全类任务用「钱包授权安全检查」**（只读 + 撤销、零真实资金风险、真实链上证据），作为合规且低风险的必填项。
+**TermiX**: `Agent Advantage Report` — ≥3 real tasks both ways (time / cost / quality + actual outputs), at least one from trading/stock/security. The **security task is a wallet-authorization check** (read-only + revocation, zero real-fund risk, real onchain evidence) — the compliant, low-risk required entry.
 
-**Altana**：自托管 agent + 真实限额 session + 链上 Keystore 注册 + 用户可撤销。评审期内展示 live onchain transactions。
+**Altana**: self-custodial agent + real-limit session + onchain Keystore registration + user-revocable. Show live onchain transactions during judging.
 
-## 9. 范围
+## 9. Scope
 
-**In scope（首版）**：四类发现层 + 一条真实雇佣闭环 + 诚实证据 + Agent Advantage Report + 分阶段授权（Altana session）。
+**In scope (v1)**: four-category discovery layer + one real hire loop + honest evidence + Agent Advantage Report + staged authorization (Altana sessions).
 
-**Out of scope（首版）**：自建合约、平台币、ZK、信誉代币、多链、自动争议平台、x402 与 ERC-8183 并存、复杂排名/自动推荐、动画。
+**Out of scope (v1)**: custom contracts, platform token, ZK, reputation tokens, multi-chain, automatic dispute platforms, x402 alongside ERC-8183, complex ranking / auto-recommendation, animation.
 
-## 10. 成功指标
+## 10. Success metric
 
-一个陌生人能否通过 PROBATION：付出清楚的费用、授予有限的权限、获得值得购买的实际结果，并保留继续或离开的选择。
+Can a stranger — through PROBATION — pay a clear fee, grant limited authority, receive a result worth buying, and keep the choice to continue or leave?
 

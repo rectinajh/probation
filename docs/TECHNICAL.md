@@ -1,75 +1,77 @@
-# PROBATION 技术方案
+# PROBATION Technical Design
 
-## 1. 技术选型
+## 1. Stack
 
-- 前端：Next.js（App Router）/ React / TypeScript；钱包连接 wagmi + viem
-- 链上：`@bnbagent/sdk`（Node ≥ 20；子路径 `./erc8004` `./erc8183` `./x402` `./storage` `./wallets` `./signing`）
-- 发现层：8004scan API（ERC-8004，20 万+ 已注册 agent，黑客松期间免费 Pro-tier 500 req/min）
-- 授权：Altana `AltanaWalletProvider`（EIP-7702 session key）
-- 网络：BSC testnet（MegaFuel 免 gas），主网按评审要求
-- 后端/编排：Next.js API routes 或轻量 Node 服务
+- Frontend: Next.js (App Router) / React / TypeScript; wallet via wagmi + viem
+- Onchain: `@bnbagent/sdk` (Node ≥ 20; subpaths `./erc8004` `./erc8183` `./x402` `./storage` `./wallets` `./signing`)
+- Discovery: 8004scan API (ERC-8004, 200k+ registered agents, free Pro-tier 500 req/min during the hackathon)
+- Authorization: Altana `AltanaWalletProvider` (EIP-7702 session keys)
+- Network: BSC testnet (MegaFuel gas sponsorship), mainnet per judging requirements
+- Backend/orchestration: Next.js API routes or a lightweight Node service
 
-## 2. 系统架构
+## 2. System architecture
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
-│                      Next.js / React 前端                    │
-│   任务市场 · 服务详情与比较 · 试工订单 · 工作台 · 证据页       │
+│                    Next.js / React frontend                 │
+│  marketplace · detail/compare · trial order · workbench ·   │
+│  evidence                                                     │
 └──────────────┬──────────────────────────────────────────────┘
                │ HTTP
 ┌──────────────▼──────────────────────────────────────────────┐
-│                  市场后端与任务编排（API）                     │
-│  Agent 发现/核验 · 报价/雇佣 · 任务生命周期 · 权限/钱包 ·      │
-│  服务适配器 · 证据收集 · 实验记录                              │
+│               Marketplace backend & orchestration (API)      │
+│  agent discovery/verify · quote/hire · job lifecycle ·       │
+│  permissions/wallet · service adapters · evidence capture ·  │
+│  experiment log                                               │
 └───┬──────────┬────────────┬───────────────┬─────────────────┘
     │          │            │               │
     ▼          ▼            ▼               ▼
- 8004scan   ERC-8183     Altana        卖方 Agent
- (发现层)   (雇佣/托管)  (session 授权) (BNB Agent Studio / Altana skills)
+ 8004scan   ERC-8183     Altana         seller agents
+ (discovery) (hire/escrow) (session auth) (BNB Agent Studio / Altana skills)
 ```
 
-## 3. 四角色与资金流 / 密钥
+## 3. Four roles, fund flow & keys
 
-| 角色 | 持有什么 | 能做什么 |
+| Role | Holds | Can do |
 |---|---|---|
-| 买方用户 | 自己的钱包私钥（本地/自托管钱包） | 创建试工、授权 session、批准/拒绝交付、撤销授权 |
-| 市场运营方 | 平台后端（API key，不含用户私钥） | 编排任务、展示证据、收取平台费（若设） |
-| 卖方 Agent | **自托管钱包 + 自己的 key（Altana）** | 在 session 限额内执行任务 |
-| 执行钱包 | 卖方 agent 的钱包 | 实际链上操作（受 session 约束） |
+| Buyer user | Own wallet private key (local/self-custodial wallet) | Create trial, grant session, approve/reject delivery, revoke |
+| Marketplace operator | Platform backend (API keys, no user private keys) | Orchestrate jobs, show evidence, collect platform fee (if any) |
+| Seller agent | **Self-custodial wallet + own key (Altana)** | Execute within session limits |
+| Execution wallet | The seller agent's wallet | Actual onchain actions (bounded by session) |
 
-**托管决策（一扇门，已定）**：执行钱包走 **Altana 自托管**——agent 自己持钥，用户授出带限额/过期/allowlist 的 session，授权与撤销归用户。不用运营方托管，避免「主权 agent」叙事返工。
+**Custody decision (one-way door, decided)**: the execution wallet is **Altana self-custodial** — the agent holds its own key, the user grants a session with limits/expiry/allowlist, and grant & revoke stay with the user. Not operator custody; avoids rework on the "sovereign agent" narrative.
 
-资金流：服务费走 ERC-8183 托管（`createJob → fund → settle`）；操作本金由用户钱包在限额内提供；gas/调用成本单独记录。
+Fund flow: service fee via ERC-8183 escrow (`createJob → fund → settle`); execution principal supplied by the user wallet within limits; gas/call costs recorded separately.
 
-## 4. 集成矩阵（先调查后接入）
+## 4. Integration matrix (investigate before integrating)
 
-| 类别 | 候选来源 | 网络 | 调用/支付 | 实际交付 | 权限要求 | 验证状态 |
+| Category | Candidate source | Network | Call/payment | Deliverable | Permission | Verified |
 |---|---|---|---|---|---|---|
-| Rebalancing | Altana `PancakeSwap Liquidity` skill / BNB Agent Studio | BSC | ERC-8183 + session | 调仓交易 + 前后状态 | 有限执行 | 待实测 |
-| Grid Trading | 官方 grid skill / 自建最小 seller | BSC | ERC-8183 | 订单组生命周期 | 有限执行 | 待实测 |
-| Yield Optimisation | Altana `Aave V3 / Venus / Lista` skills | BSC | ERC-8183 | 迁移或不迁移 + 依据 | 有限执行 | 待实测 |
-| Health Factor Monitoring | Altana `Venus / Aave` lending 数据 | BSC | session（只读+告警） | 观察时点 + 触发记录 | 观察（只读） | 待实测 |
-| 安全（报告任务） | 钱包授权扫描 + 检查清单 | BSC | 只读 + 撤销 | 漏检项 + 撤销结果 | 只读 + 撤销 | 待实测 |
+| Rebalancing | Altana `PancakeSwap Liquidity` skill / BNB Agent Studio | BSC | ERC-8183 + session | Rebalance txs + before/after state | Limited execution | TBD |
+| Grid Trading | Official grid skill / minimal self-built seller | BSC | ERC-8183 | Order-set lifecycle | Limited execution | TBD |
+| Yield Optimisation | Altana `Aave V3 / Venus / Lista` skills | BSC | ERC-8183 | Migration or reason-not-to + basis | Limited execution | TBD |
+| Health Factor Monitoring | Altana `Venus / Aave` lending data | BSC | session (read-only + alerts) | Observation timestamps + trigger records | Observe (read-only) | TBD |
+| Security (report task) | Wallet authorization scan + checklist | BSC | read-only + revoke | Missed items + revocation results | Read-only + revoke | TBD |
 
-发现层用 8004scan 拉真实 listing；**不得**把同一个聊天服务改四个名字冒充四类能力。
+Discovery pulls real listings from 8004scan; do **not** rebrand one chat service four ways to fake four capabilities.
 
-## 5. 应用状态机
+## 5. Application state machine
 
 ```text
-草稿 → 已报价 → 用户确认 → 已付款
-→ 执行中 → 已交付 → 验证中
-→ 验收结束 / 需要复核 / 失败 / 到期
+Draft → Quoted → User-confirmed → Paid
+→ Running → Delivered → Verifying
+→ Accepted / Needs-review / Failed / Expired
 ```
 
-这是应用流程，**不是**任何 SDK 的原生状态；需与真实支付 / 任务 / 授权状态分别映射。ERC-8183 自带状态：`created / funded / submitted / settled / disputed / expired`。
+This is an application flow, **not** any SDK's native state; it must map separately to real payment / job / authorization states. ERC-8183 carries its own: `created / funded / submitted / settled / disputed / expired`.
 
-进程重启、网络超时、回调重复时，**不能重复扣款、重复下单、丢失失败记录**（幂等锚点 = ERC-8183 jobId）。
+Across process restarts, network timeouts, and duplicate callbacks: **no double charges, no duplicate orders, no lost failure records** (idempotency anchor = ERC-8183 jobId).
 
-## 6. 最小数据模型
+## 6. Minimal data model
 
 ```text
 User(id, walletAddress)
-Agent(id, agentId[ERC-8004], provider, category, version, config, source[声明/实测/历史])
+Agent(id, agentId[ERC-8004], provider, category, version, config, source[claim/live/history])
 TrialSpec(taskId, agentId, category, description, inputs, network, serviceFee,
           executionBudget, allowedActions, expiry, acceptanceCriteria,
           requiredEvidence, dataFreshness, failureRefundPolicy)
@@ -78,28 +80,28 @@ Session(sessionKey, wallet, allowlist, spendCap, expiry, keystoreRef, revoked)
 Evidence(evidenceId, jobId, kind[tx/state/report], artifactRef, timestamp, chainRef)
 ```
 
-产物存储与敏感数据访问单独设计；API key / 私钥 / session key 不进前端、日志、公开报告、仓库。
+Artifact storage and sensitive-data access are designed separately; API keys / private keys / session keys never enter the frontend, logs, public reports, or the repo.
 
-## 7. 接口边界
+## 7. Interface boundaries
 
-- 8004scan API key 只在后端，不进浏览器。
-- ERC-8183 客户端 `createJob / registerJob / fund / settle`；`expiredAt` 必须 > `disputeWindow + 安全余量`，否则 `createJob` 抛错。
-- x402 与 ERC-8183 二选一，首版用 ERC-8183。
-- 交付摘要通过验证 ≠ 内容质量合格。
+- 8004scan API key lives in the backend only, never in the browser.
+- ERC-8183 client `createJob / registerJob / fund / settle`; `expiredAt` must clear `disputeWindow + safety buffer`, else `createJob` throws.
+- x402 vs ERC-8183: pick one; v1 uses ERC-8183.
+- A deliverable summary passing verification ≠ content quality passing.
 
-## 8. 错误与幂等
+## 8. Errors & idempotency
 
-LLM 交付四态必须独立处理：`malformed / empty / refusal / hallucinated-json`，分别重试/降级/拒绝，用户看到明确文案而非 500。
+LLM deliverables must handle four states independently: `malformed / empty / refusal / hallucinated-json`, each retry / degrade / reject with a clear user message instead of a 500.
 
-五个 canonical 流程即混沌测试靶子：`happy / dispute-reject / stalemate-expire / never-submit / cancel-open`。
+The five canonical flows are the chaos-test targets: `happy / dispute-reject / stalemate-expire / never-submit / cancel-open`.
 
-## 9. 安全
+## 9. Security
 
-- 外部 Agent 简介与交付物是**不可信输入**（防 prompt injection），不能改系统规则或诱导额外工具调用。
-- job/trial 数据按 user 隔离（防 IDOR）。
-- 没有真实执行，`status` 不允许 `completed`（证据真伪链不能砍）。
+- External agent descriptions and deliverables are **untrusted input** (prompt-injection defense); they can't change system rules or induce extra tool calls.
+- Job/trial data is scoped per user (IDOR defense).
+- Without real execution, `status` must never be `completed` (the evidence-truth chain is non-negotiable).
 
-## 10. 部署与可用性
+## 10. Deploy & availability
 
-早部署、评审期（9–23 日）不断供、testnet faucet 余额备足、部署服务不过期。公开 URL 是硬约束，高于任何灰度/feature flag。
+Deploy early, stay up through judging (Sep 9-23), keep testnet faucet balance topped up, and don't let the deployment service expire. The public URL is a hard requirement — higher priority than any feature flag or gray release.
 
