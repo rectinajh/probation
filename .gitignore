@@ -2,6 +2,7 @@
 node_modules/
 .next/
 .pnpm-store/
+*.tsbuildinfo
 
 # Env & secrets
 .env
@@ -19,4 +20,3 @@ node_modules/
 *.log
 .vscode/
 .idea/
-
