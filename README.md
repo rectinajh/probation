@@ -195,10 +195,16 @@ honestly marked **待测 (pending)** — not fabricated.
 
 - **Observe stage (shipped)** — the trial grants a session with **empty
   allowlist + 0 U spend cap**, so the agent holds **no asset-moving authority**.
-- **Limited-execute (designed, not yet on-chain)** — a bounded Altana EIP-7702
-  session key (allowlist / spend cap / expiry / on-chain Keystore registration /
-  one-click revoke). This is documented in `docs/TECHNICAL.md` and surfaced in
-  the UI, but we do **not** claim live session-key transactions yet.
+  Evidence is a deterministic read-only report; the trial also surfaces the
+  **real on-chain settlement transaction** it produced.
+- **Limited-execute (code-complete, not live)** — the seller can execute a
+  **real, bounded on-chain $U transfer** within the cap + expiry the user signs
+  (`mode=execute`), surfaced via a seller HTTP evidence endpoint. Implemented and
+  verified locally, but the seller-host redeploy is **blocked by a Fly billing
+  gate**, so it is gated off in the live UI (observe stays live).
+- **Altana session keys (designed)** — the EIP-7702 allowlist / spend-cap /
+  expiry / on-chain Keystore registration / one-click revoke path is documented
+  in `docs/TECHNICAL.md`; we do **not** claim live session-key transactions.
 
 ## 10. Custom ERC-8183 deployment (BSC testnet, 9s window)
 
@@ -262,7 +268,9 @@ pnpm security-check 0x…   # read-only wallet authorization scan (Agent Advanta
   signed quotes).
 - **Discovery**: 8004scan API (real ERC-8004 agents, ~200k+).
 - **Authorization**: staged authority — observe grants empty allowlist + 0 U
-  spend cap; Altana EIP-7702 limited-execute session path is designed/documented.
+  spend cap; a real bounded on-chain limited-execute is code-complete (gated off
+  until the seller host can redeploy); Altana EIP-7702 session keys are
+  designed/documented.
 - **Network**: BSC testnet (demo stack) + mainnet reads for the security scan.
 
 ## 14. Docs index

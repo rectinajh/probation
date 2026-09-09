@@ -185,6 +185,11 @@ Safety regression: `expired-session-rejected` — a call after session expiry mu
   authority). The full EIP-7702 on-chain Keystore registration + one-click
   revoke path is documented here and surfaced in the UI, but is not yet deployed
   on-chain, so we do not claim live session-key transactions.
+- Limited-execute — **status: code-complete, not live**. The seller implements a
+  real, bounded, on-chain action (`mode=execute` → bounded `$U` transfer) with a
+  seller HTTP evidence endpoint; it is verified locally. The seller-host redeploy
+  is blocked by a Fly billing gate, so it is gated off in the live UI. Observe +
+  real settlement-transaction evidence are live.
 - Seller runner: orchestrator-embedded + retry (§11).
 - Deploy: single Next.js full-stack (API routes), public URL through judging.
 - Repo: GitHub (public).
