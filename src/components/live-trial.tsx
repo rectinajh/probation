@@ -563,9 +563,9 @@ export function LiveTrial({
           </div>
           <p className="faint" style={{ fontSize: "0.8rem", margin: "0 0 1rem" }}>
             This observe trial grants <strong>no</strong> asset-moving authority.
-            The limited-execute stage is now a real, bounded on-chain transfer
-            (cap + expiry you sign). The Altana EIP-7702 session-key on-chain
-            Keystore registration is the next production step.
+            The limited-execute stage (a real, bounded on-chain transfer you
+            authorize) is code-complete but not live yet — the seller host
+            redeploy is blocked. Observe trials are fully live.
           </p>
           <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
             <button className="btn btn-ghost" onClick={run}>
@@ -573,26 +573,13 @@ export function LiveTrial({
             </button>
             <button
               className="btn btn-primary"
-              disabled={job?.mode !== "observe"}
+              disabled
               onClick={runExecute}
-              title={
-                job?.mode === "observe"
-                  ? "Sign a bounded authorization; the agent then executes one real on-chain transfer within the cap."
-                  : "Available after completing an observe trial."
-              }
+              title="Limited-execute is code-complete but the seller host redeploy is blocked (pending). Observe trials are live."
             >
-              Grant limited authority → execute a bounded transfer
+              Grant limited authority →
             </button>
           </div>
-          {job?.mode === "observe" && (
-            <p
-              className="faint"
-              style={{ fontSize: "0.8rem", margin: "0.6rem 0 0" }}
-            >
-              This grants a bounded session: cap 1 U, 10-min expiry. The agent
-              executes a real on-chain transfer within those bounds.
-            </p>
-          )}
           {settleTx && (
             <p
               className="faint"
