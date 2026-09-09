@@ -26,6 +26,18 @@ Copy `.env.example` to `.env` and fill each field below.
 - **First run only**: the SDK imports it, encrypts it to `~/.bnbagent/wallets/<address>.json` under `WALLET_PASSWORD`, then you can remove the `PRIVATE_KEY` line and keep only `WALLET_PASSWORD` for later runs.
 - **Security**: never commit; never put in the frontend/logs; use a testnet-only wallet. There is more in the SDK security docs (<https://docs.bnbchain.org/developer-kit/bnbagent-sdk/security/>).
 
+## Payment token — United Stables `$U` (escrow)
+
+- **What**: ERC-8183 escrow is denominated in a stablecoin, not tBNB. On
+  `bsc-testnet` the payment token is **United Stables (`U`)**, 18 decimals,
+  `0xc70B8741B8B07A6d61E54fd4B20f22Fa648E5565`.
+- **How to get**: the official BNB Chain testnet faucet also dispenses `$U`
+  (10 U per claim). Fund the **same wallet** as `PRIVATE_KEY`:
+  <https://www.bnbchain.org/en/testnet-faucet>
+- **Why**: a job with a real budget needs the wallet to hold `U`. tBNB only
+  covers gas. A zero-budget job (`pnpm hire 0`) needs no `U` and exercises the
+  full pipeline for free.
+
 ## `ERC8183_AGENT_URL`
 
 - **What**: the public base URL of your seller-runner; the SDK's deliverable-URL fallback host used by `ERC8183JobOps`.
@@ -63,4 +75,3 @@ pnpm seller-runner  # seller side (polling + submit deliverable)
 ```
 
 See the BNB Agent SDK TypeScript quickstart for the authoritative API surface: <https://docs.bnbchain.org/developer-kit/bnbagent-sdk/quickstart-typescript/>.
-
