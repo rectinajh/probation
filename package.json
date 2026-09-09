@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seller-runner": "tsx src/lib/seller-runner.ts",
+    "seller-runner": "tsx scripts/run-seller.ts",
     "register-agent": "tsx scripts/register-agent.ts"
   },
   "dependencies": {

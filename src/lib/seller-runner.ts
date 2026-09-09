@@ -66,10 +66,3 @@ export async function runSellerRunner() {
   );
 }
 
-if (import.meta.url === new URL(process.argv[1] ?? "", "file:").href) {
-  runSellerRunner().catch((err) => {
-    console.error("[seller-runner] fatal", err);
-    process.exit(1);
-  });
-}
-
