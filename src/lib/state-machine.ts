@@ -62,12 +62,14 @@ export function canTransition(
   const allowed = ALLOWED.some((t) => t.from === from && t.to === to);
   if (!allowed) return false;
 
-  if (
-    (from === "delivered" && to === "verifying") ||
-    (from === "delivered" && to === "needs-review") ||
-    (from === "verifying" && to === "accepted")
-  ) {
-    return Boolean(evidence && evidence.chainRef);
+  if (from === "delivered" && to === "verifying") {
+    return Boolean(evidence);
+  }
+  if (from === "verifying" && to === "accepted") {
+    // Execute-stage (tx) evidence must reference a real onchain transaction;
+    // observe-stage reports (kind !== "tx") can be accepted on the report alone.
+    if (!evidence) return false;
+    return evidence.kind === "tx" ? Boolean(evidence.chainRef) : true;
   }
   return true;
 }
@@ -76,4 +78,3 @@ export function canTransition(
 export function sessionActive(session: Session, nowSec: bigint): boolean {
   return !session.revoked && session.expiry > nowSec;
 }
-
