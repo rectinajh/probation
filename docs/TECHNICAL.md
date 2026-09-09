@@ -67,6 +67,24 @@ This is an application flow, **not** any SDK's native state; it must map separat
 
 Across process restarts, network timeouts, and duplicate callbacks: **no double charges, no duplicate orders, no lost failure records** (idempotency anchor = ERC-8183 jobId).
 
+Three-way state mapping (application ↔ ERC-8183 ↔ Altana session) — required so the UI never claims "running" while the chain says otherwise:
+
+| Application state | ERC-8183 job state | Altana session | User sees |
+|---|---|---|---|
+| Draft | — | — | "Draft trial" |
+| Quoted | — | — | "Quoted: fee X, budget Y" |
+| User-confirmed | — | granted (limited) | "Authorized, awaiting payment" |
+| Paid | `created` + `funded` | active | "Escrow funded" |
+| Running | `funded` | active | "Agent working" |
+| Delivered | `submitted` | active | "Deliverable ready for review" |
+| Verifying | `submitted` (dispute window) | active | "Reviewing evidence" |
+| Accepted | `settled` | keep or revoke | "Complete — decide next step" |
+| Needs-review | `disputed` / `rejected` | active | "Dispute raised" |
+| Failed | `expired` / never-submit | revoke | "Failed / expired" |
+| Expired | `expired` | revoked | "Expired" |
+
+Evidence guard (E2): the `Delivered → Verifying → Accepted` transition requires `evidence.chainRef` to be present and resolvable onchain; otherwise the transition throws. No real transaction = no `completed`.
+
 ## 6. Minimal data model
 
 ```text
@@ -105,3 +123,51 @@ The five canonical flows are the chaos-test targets: `happy / dispute-reject / s
 
 Deploy early, stay up through judging (Sep 9-23), keep testnet faucet balance topped up, and don't let the deployment service expire. The public URL is a hard requirement — higher priority than any feature flag or gray release.
 
+## 11. Seller runner (E1)
+
+The ERC-8183 TypeScript SDK is transport-agnostic: the seller side is a headless polling loop, not an HTTP server. A minimal `seller-runner` must:
+
+- poll `fundedJobWatcher` for funded jobs,
+- invoke the seller skill/agent to do the actual work,
+- call `submitResult` with idempotent retry on transient failures,
+- log the full job lifecycle.
+
+**Decision**: embedded in the orchestrator with simple retry — sufficient for the hackathon; promote to a standalone process only if a category outgrows it.
+
+## 12. ServiceAdapter interface (E3)
+
+One shared shell, four divergent-free implementations:
+
+```ts
+interface ServiceAdapter {
+  quote(inputs: TrialSpec): Promise<Quote>;
+  run(job: Job, session: Session): Promise<RunResult>;
+  submitEvidence(job: Job, result: RunResult): Promise<Evidence>;
+  cancel(job: Job, session: Session): Promise<void>;
+}
+```
+
+Each of the four categories implements this interface; the discovery / quote / hire / evidence UI stays shared. DRY comes from the interface, not from copied code.
+
+## 13. Testing (E4)
+
+Three layers:
+
+- **unit** — TrialSpec validation, state-machine transition table,
+- **integration** — ERC-8183 full flow on testnet against a mock seller,
+- **E2E** — discover → hire → see evidence.
+
+Safety regression: `expired-session-rejected` — a call after session expiry must be rejected onchain. This is what makes "staged authorization" real, so it's a non-negotiable test.
+
+## 14. Performance & caching (E5)
+
+- 8004scan: paginate + server-side cache (200k agents).
+- Real-time price / APR / onchain state: backend cache; no per-request RPC from the client.
+- One orchestrator polls and dispatches; don't run one persistent process per agent.
+
+## 15. Decisions (resolved)
+
+- Custody: Altana self-custodial (§3).
+- Seller runner: orchestrator-embedded + retry (§11).
+- Deploy: single Next.js full-stack (API routes), public URL through judging.
+- Repo: GitHub (public).
