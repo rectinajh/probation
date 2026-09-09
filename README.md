@@ -63,7 +63,9 @@ docs/
   TECHNICAL.md      technical design
   ENV.md            how to obtain each environment variable
   DEPLOY.md         deployment runbook (Vercel + seller host)
+  DEMO.md           live demo, deployment addresses, on-chain records
   AGENT-ADVANTAGE-REPORT.md   TermiX evidence report template
+  screenshots/      rendered product screenshots
 ```
 
 ## Status
@@ -82,6 +84,10 @@ The frontend (`/`) is a one-click product demo:
 2. The seller agent reads the position's live Venus health factor and submits
    evidence on-chain.
 3. After a 9-second optimistic window the job settles and escrow is released.
+
+![PROBATION landing](docs/screenshots/home-top.png)
+
+![PROBATION full page](docs/screenshots/home-full.png)
 
 Terminal equivalent (one command, full loop):
 
