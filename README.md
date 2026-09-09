@@ -62,6 +62,8 @@ docs/
   PRD.md            product requirements document
   TECHNICAL.md      technical design
   ENV.md            how to obtain each environment variable
+  DEPLOY.md         deployment runbook (Vercel + seller host)
+  AGENT-ADVANTAGE-REPORT.md   TermiX evidence report template
 ```
 
 ## Status
