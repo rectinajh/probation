@@ -90,16 +90,14 @@ export async function searchAgentsByCategory(
     `/agents/search/semantic?q=${encodeURIComponent(q)}&limit=${limit}`,
   );
   const agents = (data.items ?? []).map(mapItem);
-  // Prefer BSC (chain 56) agents so the marketplace feels BSC-native, then by
-  // trust score. The API may return cross-chain matches; we surface the closest.
-  return agents
-    .sort((a, b) => {
-      const aBsc = a.chainId === 56 ? 1 : 0;
-      const bBsc = b.chainId === 56 ? 1 : 0;
-      if (aBsc !== bBsc) return bBsc - aBsc;
-      return b.totalScore - a.totalScore;
-    })
-    .slice(0, limit);
+  // Prefer BSC-native agents (mainnet 56 / testnet 97) so the marketplace feels
+  // on-theme; fall back to cross-chain matches only if BSC returns nothing.
+  const isBsc = (a: Agent) => a.chainId === 56 || a.chainId === 97;
+  const bsc = agents.filter(isBsc);
+  const pool = (bsc.length >= 4 ? bsc : agents).sort(
+    (a, b) => b.totalScore - a.totalScore,
+  );
+  return pool.slice(0, limit);
 }
 
 /** List recent agents (fallback / generic browse). */
