@@ -1,0 +1,4 @@
+app = "probation-seller"
+primary_region = "sin"
+
+[build]
