@@ -33,6 +33,7 @@ export async function hireAgent(input: HireInput) {
   await client.registerJob(jobId!);
   await client.fund(jobId!, input.budget);
 
-  return { jobId, status: JobStatus[await (await client.getJob(jobId!)).status] };
+  const job = await client.getJob(jobId!);
+  return { jobId, status: JobStatus[job.status] };
 }
 
