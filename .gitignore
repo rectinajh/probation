@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+.next/
+.pnpm-store/
+
+# Env & secrets
+.env
+.env.local
+.env.*.local
+*.pem
+
+# gstack / local agent data
+.agent-data/
+.agents/
+~/.gstack/
+
+# OS / editor
+.DS_Store
+*.log
+.vscode/
+.idea/
+
