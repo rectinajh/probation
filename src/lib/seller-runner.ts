@@ -38,6 +38,7 @@ export async function runSellerRunner() {
 
   const wallet = new EVMWalletProvider({
     password: process.env.WALLET_PASSWORD!,
+    privateKey: process.env.PRIVATE_KEY, // first-run import in a fresh container
   });
 
   const jobOps = await ERC8183JobOps.create({
