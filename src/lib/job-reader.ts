@@ -9,6 +9,8 @@ export interface JobSnapshot {
   submittedAt: string;
   provider: string;
   client: string;
+  /** The account the evidence was computed for (the user's connected wallet). */
+  subject: string;
   evidence: {
     liquidity: string;
     shortfall: string;
@@ -38,10 +40,17 @@ export async function readJob(jobId: number): Promise<JobSnapshot> {
   const c = await client();
   const job = await c.getJob(BigInt(jobId));
 
+  // The monitored position is the address the buyer embedded in the task text
+  // (the connected user's wallet). Fall back to job.client for legacy jobs.
+  const description = String(job.description ?? "");
+  const monitor = /monitor account=(0x[0-9a-fA-F]{40})/.exec(description)?.[1];
+  const subject = (monitor ??
+    job.client) as `0x${string}`;
+
   const submitted = job.status >= JobStatus.SUBMITTED;
   let evidence: JobSnapshot["evidence"] = null;
   if (submitted) {
-    const hf = await readHealthFactor(job.client);
+    const hf = await readHealthFactor(subject);
     evidence = {
       liquidity: hf.liquidity.toString(),
       shortfall: hf.shortfall.toString(),
@@ -57,6 +66,7 @@ export async function readJob(jobId: number): Promise<JobSnapshot> {
     submittedAt: job.submittedAt.toString(),
     provider: job.provider,
     client: job.client,
+    subject,
     evidence,
   };
 }

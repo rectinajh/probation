@@ -1,9 +1,27 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  BSC_TESTNET_CHAIN_ID,
+  connectWallet,
+  detectedAccount,
+  onWalletChange,
+  readChainId,
+  signWalletMessage,
+  switchToBscTestnet,
+} from "@/lib/wallet";
 import { EvidenceCard, type HealthEvidence } from "./evidence-card";
 
-type Phase = "idle" | "hiring" | "running" | "submitted" | "settling" | "done" | "error";
+type Phase =
+  | "idle"
+  | "connecting"
+  | "signing"
+  | "hiring"
+  | "running"
+  | "submitted"
+  | "settling"
+  | "done"
+  | "error";
 
 interface JobSnapshot {
   jobId: number;
@@ -13,22 +31,43 @@ interface JobSnapshot {
   submittedAt: string;
   provider: string;
   client: string;
+  subject: string;
   evidence: HealthEvidence | null;
 }
 
 const DISPUTE_WINDOW_S = 9;
 
-function fmtU(raw: string): string {
-  const n = Number(raw) / 1e18;
-  return `${n} U`;
-}
-
 export function LiveTrial({ providerAddress }: { providerAddress: string }) {
+  const [address, setAddress] = useState<`0x${string}` | null>(null);
+  const [chainId, setChainId] = useState<number>(0);
   const [phase, setPhase] = useState<Phase>("idle");
   const [job, setJob] = useState<JobSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(DISPUTE_WINDOW_S);
   const settleSent = useRef(false);
+
+  const isConnected = !!address;
+  const onBscTestnet = chainId === BSC_TESTNET_CHAIN_ID;
+
+  // Pre-detect an already-connected wallet + subscribe to changes.
+  useEffect(() => {
+    let mounted = true;
+    detectedAccount().then((a) => {
+      if (!mounted) return;
+      setAddress(a);
+    });
+    readChainId().then((id) => {
+      if (mounted) setChainId(id);
+    });
+    const off = onWalletChange((a, id) => {
+      setAddress(a);
+      setChainId(id);
+    });
+    return () => {
+      mounted = false;
+      off();
+    };
+  }, []);
 
   const poll = useCallback(async () => {
     if (!job) return;
@@ -37,7 +76,6 @@ export function LiveTrial({ providerAddress }: { providerAddress: string }) {
       const data = (await res.json()) as JobSnapshot & { error?: string };
       if (!res.ok || data.error) throw new Error(data.error ?? "poll failed");
       setJob(data);
-
       if (data.statusCode >= 3) {
         setPhase("done");
         return;
@@ -73,12 +111,40 @@ export function LiveTrial({ providerAddress }: { providerAddress: string }) {
     }
   }, [job]);
 
+  async function connect() {
+    setPhase("connecting");
+    setError(null);
+    try {
+      const addr = await connectWallet();
+      setAddress(addr);
+      setChainId(await readChainId());
+      setPhase("idle");
+    } catch (err) {
+      setError((err as Error).message);
+      setPhase("error");
+    }
+  }
+
+  async function switchChain() {
+    try {
+      await switchToBscTestnet();
+      setChainId(BSC_TESTNET_CHAIN_ID);
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
   async function run() {
-    setPhase("hiring");
+    if (!address) return;
     setError(null);
     setJob(null);
     settleSent.current = false;
+    setPhase("signing");
     try {
+      const message = `PROBATION: authorize a bounded health-factor monitor trial for ${address} on BSC testnet (fee 1 U, observe stage).`;
+      const signature = await signWalletMessage(message, address);
+
+      setPhase("hiring");
       const res = await fetch("/api/hire", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -87,23 +153,25 @@ export function LiveTrial({ providerAddress }: { providerAddress: string }) {
           description:
             "Monitor this lending position's health factor (observe stage)",
           budget: "1000000000000000000", // 1 U
+          signer: address,
+          signature,
+          message,
         }),
       });
-      const data = (await res.json()) as { jobId?: number; error?: string };
-      if (!res.ok || !data.jobId) {
-        throw new Error(data.error ?? "hire failed");
-      }
-      const initial: JobSnapshot = {
-        jobId: data.jobId,
+      const data = (await res.json()) as { jobId?: string; error?: string };
+      if (!res.ok || !data.jobId) throw new Error(data.error ?? "hire failed");
+
+      setJob({
+        jobId: Number(data.jobId),
         status: "FUNDED",
         statusCode: 1,
         budget: "1000000000000000000",
         submittedAt: "0",
         provider: providerAddress,
-        client: providerAddress,
+        client: address,
+        subject: address,
         evidence: null,
-      };
-      setJob(initial);
+      });
       setPhase("running");
     } catch (err) {
       setError((err as Error).message);
@@ -131,9 +199,14 @@ export function LiveTrial({ providerAddress }: { providerAddress: string }) {
     return () => clearInterval(tick);
   }, [phase, job, settle]);
 
-  const funded = phase !== "idle" && phase !== "hiring" && phase !== "error";
-  const submitted = phase === "submitted" || phase === "settling" || phase === "done";
-  const completed = phase === "done";
+  const isFunded =
+    phase === "running" ||
+    phase === "submitted" ||
+    phase === "settling" ||
+    phase === "done";
+  const isSubmitted =
+    phase === "submitted" || phase === "settling" || phase === "done";
+  const isDone = phase === "done";
 
   return (
     <div className="card" style={{ padding: "1.75rem" }}>
@@ -147,7 +220,14 @@ export function LiveTrial({ providerAddress }: { providerAddress: string }) {
         }}
       >
         <div style={{ maxWidth: 480 }}>
-          <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", alignItems: "center" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "0.6rem",
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
             <span className="pill">
               <span className="dot" />
               Health Factor Monitoring
@@ -173,14 +253,55 @@ export function LiveTrial({ providerAddress }: { providerAddress: string }) {
         </div>
       </div>
 
-      {phase === "idle" && (
-        <button className="btn btn-primary" onClick={run} style={{ marginTop: "1.25rem" }}>
-          Run a 1 U trial →
-        </button>
-      )}
+      <div
+        style={{
+          marginTop: "1.5rem",
+          paddingTop: "1.5rem",
+          borderTop: "1px solid var(--border-soft)",
+        }}
+      >
+        {!isConnected ? (
+          <button className="btn btn-primary" onClick={connect} disabled={phase === "connecting"}>
+            {phase === "connecting" ? "Connecting…" : "Connect wallet →"}
+          </button>
+        ) : !onBscTestnet ? (
+          <div style={{ display: "flex", alignItems: "center", gap: "0.8rem", flexWrap: "wrap" }}>
+            <span className="pill warn">
+              <span className="dot" />
+              Switch to BSC testnet
+            </span>
+            <button className="btn btn-ghost" onClick={switchChain}>
+              Switch chain
+            </button>
+          </div>
+        ) : phase === "idle" || phase === "error" ? (
+          <div style={{ display: "flex", alignItems: "center", gap: "0.8rem", flexWrap: "wrap" }}>
+            <span className="pill ok">
+              <span className="dot" />
+              {address?.slice(0, 6)}…{address?.slice(-4)}
+            </span>
+            <button className="btn btn-primary" onClick={run}>
+              Authorize &amp; run 1 U trial →
+            </button>
+            <button className="btn btn-ghost" onClick={() => setAddress(null)}>
+              Disconnect
+            </button>
+          </div>
+        ) : (
+          <span className="pill ok">
+            <span className="dot" />
+            Signed &amp; authorized — {address?.slice(0, 6)}…{address?.slice(-4)}
+          </span>
+        )}
+      </div>
 
+      {phase === "signing" && (
+        <div className="muted" style={{ marginTop: "1rem" }}>
+          Signing the trial authorization in your wallet…
+        </div>
+      )}
       {phase === "hiring" && (
-        <div className="muted" style={{ marginTop: "1.25rem" }}>
+        <div className="muted" style={{ marginTop: "1rem" }}>
           Escrowing 1 U and creating the on-chain job…
         </div>
       )}
@@ -192,7 +313,7 @@ export function LiveTrial({ providerAddress }: { providerAddress: string }) {
         </div>
       )}
 
-      {funded && (
+      {isFunded && (
         <div className="timeline" style={{ marginTop: "1.5rem" }}>
           <div className="tstep done">
             <div className="ring">✓</div>
@@ -204,33 +325,33 @@ export function LiveTrial({ providerAddress }: { providerAddress: string }) {
             </div>
           </div>
 
-          <div className={`tstep ${submitted ? "done" : "active"}`}>
-            <div className="ring">{submitted ? "✓" : "2"}</div>
+          <div className={`tstep ${isSubmitted ? "done" : "active"}`}>
+            <div className="ring">{isSubmitted ? "✓" : "2"}</div>
             <div>
               <div className="t-title">
-                {submitted ? "Evidence produced" : "Agent producing evidence…"}
+                {isSubmitted ? "Evidence produced" : "Agent producing evidence…"}
               </div>
               <div className="t-sub">
-                {submitted
+                {isSubmitted
                   ? "Venus health factor read and submitted on-chain"
                   : "reading live Venus account liquidity"}
               </div>
             </div>
           </div>
 
-          {submitted && (
-            <div className={`tstep ${completed ? "done" : "active"}`}>
-              <div className="ring">{completed ? "✓" : "3"}</div>
+          {isSubmitted && (
+            <div className={`tstep ${isDone ? "done" : "active"}`}>
+              <div className="ring">{isDone ? "✓" : "3"}</div>
               <div>
                 <div className="t-title">
-                  {completed
+                  {isDone
                     ? "Settled — escrow released"
                     : phase === "settling"
                       ? "Settling…"
                       : `Optimistic window · ${countdown}s`}
                 </div>
                 <div className="t-sub">
-                  {completed
+                  {isDone
                     ? "Trial completed. Payment released to the agent."
                     : "no dispute → auto-approve and release"}
                 </div>
@@ -240,24 +361,21 @@ export function LiveTrial({ providerAddress }: { providerAddress: string }) {
         </div>
       )}
 
-      {job?.evidence && submitted && (
-        <EvidenceCard evidence={job.evidence} account={job.client} />
+      {job?.evidence && isSubmitted && (
+        <EvidenceCard evidence={job.evidence} account={job.subject || job.client} />
       )}
 
-      {completed && (
+      {isDone && (
         <div
           className="card"
-          style={{
-            marginTop: "1.5rem",
-            borderColor: "rgba(45, 212, 160, 0.3)",
-          }}
+          style={{ marginTop: "1.5rem", borderColor: "rgba(45, 212, 160, 0.3)" }}
         >
           <div style={{ fontWeight: 700, fontSize: "1.05rem" }}>
             Trial complete. Now it&apos;s your decision.
           </div>
           <p className="muted" style={{ margin: "0.4rem 0 1rem", fontSize: "0.95rem" }}>
-            Evidence first, trust second: you can stop here, keep the agent on
-            another bounded trial, or explicitly grant broader authority.
+            You authorized this with your wallet. Evidence first, trust second:
+            stop here, run another bounded trial, or grant broader authority.
           </p>
           <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
             <button className="btn btn-ghost" onClick={run}>

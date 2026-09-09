@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { verifyMessage } from "viem";
 import { hireAgent } from "@/lib/erc8183";
 
 export const runtime = "nodejs";
@@ -16,6 +17,9 @@ export async function POST(req: Request) {
       provider?: string;
       description?: string;
       budget?: string;
+      signer?: string;
+      signature?: string;
+      message?: string;
     } | null;
 
     const provider = body?.provider;
@@ -27,9 +31,34 @@ export async function POST(req: Request) {
       );
     }
 
+    // Verify the connected wallet authorized this trial before we do anything.
+    if (body?.signer && body?.signature && body?.message) {
+      const ok = await verifyMessage({
+        address: body.signer as `0x${string}`,
+        message: body.message,
+        signature: body.signature as `0x${string}`,
+      });
+      if (!ok) {
+        return NextResponse.json(
+          { error: "signature verification failed" },
+          { status: 401 },
+        );
+      }
+    }
+
     const budget = BigInt(body?.budget ?? "0");
-    const result = await hireAgent({ provider, description, budget });
-    return NextResponse.json(result);
+    const result = await hireAgent({
+      provider,
+      description,
+      budget,
+      // In the demo the monitored position is the user's connected wallet.
+      monitorAddress: body?.signer,
+    });
+    // jobId comes back as a BigInt from the SDK; serialize it as a string.
+    return NextResponse.json({
+      jobId: String(result.jobId),
+      status: result.status,
+    });
   } catch (err) {
     return NextResponse.json(
       { error: (err as Error).message },
@@ -37,4 +66,3 @@ export async function POST(req: Request) {
     );
   }
 }
-

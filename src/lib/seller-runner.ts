@@ -15,13 +15,17 @@ import { getAdapter } from "./adapter-registry";
 const DEFAULT_CATEGORY: Category = "health-factor-monitoring";
 
 function sessionFor(job: Record<string, unknown>): Session {
-  // The buyer (job.client) is the account whose position we inspect. Altana
+  // The monitored account is the connected user's wallet, which the buyer
+  // embeds in the signed task text (`monitor account=<addr>`). Fall back to
+  // job.client for jobs created without an explicit monitor address. Altana
   // session scoping (allowlist / spend cap / expiry) is a follow-up; observe
   // stage is read-only so this is safe.
-  const client =
-    typeof job.client === "string" && job.client.startsWith("0x")
-      ? (job.client as `0x${string}`)
-      : ("0x0000000000000000000000000000000000000000" as `0x${string}`);
+  const description = String(job.description ?? "");
+  const monitor = /monitor account=(0x[0-9a-fA-F]{40})/.exec(description)?.[1];
+  const client = (monitor ||
+    (typeof job.client === "string" && job.client.startsWith("0x")
+      ? job.client
+      : "0x0000000000000000000000000000000000000000")) as `0x${string}`;
   return {
     sessionKey: client,
     wallet: client,

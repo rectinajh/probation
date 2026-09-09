@@ -10,6 +10,9 @@ export interface HireInput {
   provider: string;
   description: string;
   budget: bigint;
+  /** The account to monitor (the user's connected wallet). The seller-runner
+   * reads this from the job description and falls back to job.client. */
+  monitorAddress?: string;
   terms?: {
     deliverables: string;
     qualityStandards: string;
@@ -55,8 +58,14 @@ export async function hireAgent(input: HireInput) {
     ],
   };
 
+  // The monitored account is the user's connected wallet. Embed it in the
+  // signed task text so the seller-runner can monitor the right position.
+  const monitorSuffix = input.monitorAddress
+    ? ` monitor account=${input.monitorAddress}`
+    : "";
+
   const request = new NegotiationRequest({
-    taskDescription: input.description,
+    taskDescription: `${input.description}${monitorSuffix}`,
     terms: new TermSpecification(terms),
   });
 
