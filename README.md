@@ -1,121 +1,211 @@
 # PROBATION — Evidence Before Trust
 
-> A BNB Chain agent marketplace where users hire agents for bounded, real-world trials, inspect verifiable results, and explicitly choose whether to grant broader authority.
+> A BNB Chain agent marketplace where users hire agents for **bounded, real-world
+> trials**, inspect **verifiable evidence**, and explicitly choose whether to grant
+> broader authority. Evidence first, trust second.
 
-Built for the BNB Chain "The Smart Money Era: Build the Era" hackathon (2026-08-05 ~ 09-09, UTC+0).
+Built for the BNB Chain **"The Smart Money Era: Build the Era"** hackathon
+(2026-08-05 ~ 09-09, UTC+0).
 
-## Background
+| | |
+|---|---|
+| **Live demo** | <https://probation-evidence.vercel.app> |
+| **Source** | <https://github.com/rectinajh/probation> (public) |
+| **Seller agent** | Running on Fly (`probation-seller`, region `sin`) |
+| **Status** | Live · discover → compare → hire → verify → decide |
 
-The AI-agent economy on BNB Smart Chain is growing fast. More than 200,000 ERC-8004 agents are already registered on 8004scan, and BNB Chain wants a single marketplace that becomes the canonical front door for every agent on BSC. But a marketplace is only useful if a user can find the right agent, understand what it actually does, and trust that hiring it is worth paying for.
+---
 
-## How the problem arises
+## TL;DR
 
-A user facing a pile of finance agents usually sees marketing, ratings, and return screenshots — not which one actually fits their task. And to verify capability, they're asked to deposit, authorize, or hand over sensitive data first. That creates a contradiction:
+PROBATION inverts the agent economy: you buy a **bounded, real-world trial**,
+see **deterministic on-chain evidence**, then decide whether to grant the agent
+broader authority — instead of being asked to deposit, authorize, or hand over
+sensitive data *before* you get proof.
 
-> I need evidence to trust you, but you demand I trust you before you'll give evidence.
+> I need evidence to trust you, but you demand I trust you before you'll give
+> evidence.
 
-It's compounded by three things: reputation and rankings can be gamed; past performance doesn't predict your specific task; and "proven advantage" is usually asserted rather than measured.
+That contradiction is what PROBATION removes.
 
-## The problem it solves
+---
 
-There's no trustworthy way to judge whether a DeFi agent is worth paying for before committing funds or authority. Concretely:
+## 1. The problem
 
-- Users can't tell which agent fits their specific task.
-- Verification requires risky up-front trust — deposit, authorization, or sensitive data.
-- Rankings tell you what's popular, not what works for your job.
-- An agent's claimed advantage is rarely backed by evidence.
+Facing a pile of finance agents, a user sees marketing, ratings, and return
+screenshots — not which one actually fits their task. And to verify capability,
+they're asked to deposit, authorize, or share sensitive data first. Three things
+compound it:
 
-## How it solves it
+- Reputation and rankings can be gamed.
+- Past performance doesn't predict your specific task.
+- An agent's "proven advantage" is usually asserted rather than measured.
 
-PROBATION inverts the order: **evidence before trust, authority follows the user's decision.**
+So there is no trustworthy way to judge whether a DeFi agent is worth paying for
+before committing funds or authority.
+
+## 2. How it solves it
 
 ```text
 User states a task and limits
-→ discover and compare real agents
+→ discover & compare real ERC-8004 agents
 → see service fee, execution budget, permissions, acceptance criteria
-→ buy one bounded trial
-→ agent does real work
-→ system verifies the deliverable and shows full evidence
-→ user decides: stop / continue / re-authorize
+→ buy ONE bounded trial (escrowed)
+→ agent does real work against live protocols (start read-only)
+→ system surfaces deterministic, verifiable evidence
+→ user decides: stop / re-run / grant bounded authority
 ```
 
-The mechanisms that keep this honest:
+The mechanisms that keep it honest:
 
-- **A trial is a contract, not a chat.** Every trial is fixed up front in a `Trial Spec` — fee, budget, allowed actions, acceptance criteria, required evidence, and failure/refund policy.
-- **Staged authorization.** Observe (read-only) → limited-execute (with user-approved scope, amount, duration) → ongoing (user re-confirms). Authority never silently expands. Implemented with Altana EIP-7702 session keys (allowlist / spend cap / expiry / revoke).
-- **Three-state provenance.** Provider claim vs platform live-test vs third-party history are labeled differently; missing data shows as missing, never fabricated.
-- **Evidence bound to reality.** Trial records bind agent version, config, task scope, and time; no real transaction means status is never "completed."
+- **A trial is a contract, not a chat.** Fixed up front in a `Trial Spec` — fee,
+  budget, allowed actions, acceptance criteria, required evidence, failure/refund
+  policy. It binds agent version, config, task scope, and time.
+- **Staged authorization.** Observe (read-only) → limited-execute (user-approved
+  scope/amount/duration) → ongoing (user re-confirms). Authority never silently
+  expands.
+- **Provenance labelled.** Provider-claim / platform-live-test / third-party
+  history are labelled differently; missing data shows as missing.
+- **No transaction = not completed.** A trial cannot reach "completed" without a
+  real on-chain reference. Claims stay claims.
 
-Honest limits we state plainly: passing a trial isn't permanent authority; a spend cap isn't a loss cap; monitoring isn't a no-liquidation guarantee; stopping an agent doesn't auto-close positions.
+Honest limits we state plainly: passing a trial is not permanent authority; a
+spend cap is not a loss cap; monitoring is not a no-liquidation guarantee;
+stopping an agent does not auto-close positions.
 
-## Hackathon context
+## 3. Four categories at equal depth
 
-- **Main track** — four categories at equal depth: Rebalancing / Grid Trading / Yield Optimisation / Health Factor Monitoring.
-- **TermiX track** — judged on "does hiring an agent beat doing it yourself," requiring an Agent Advantage Report (≥3 real tasks both ways, at least one from trading/stock/security).
-- **Altana track** — self-custodial agents with real-limit onchain sessions (allowlist, spend cap, expiry, revoke).
+All four categories are **observe-stage** (read-only, deterministic, no funds
+moved) and read **real live on-chain data**:
 
-## Repo layout
+| Category | What it reads (real) | Evidence the user gets | Doc |
+|---|---|---|---|
+| **Health Factor** | Venus Unitroller `getAccountLiquidity` | liquidity / shortfall / healthy vs at-risk | `src/lib/adapters/health-factor.ts` |
+| **Rebalancing** | BNB + $U balances + live Venus BNB price | current vs target weight + exact move | `src/lib/adapters/rebalancing.ts` |
+| **Grid Trading** | live BNB price + available stable capital | bounded grid plan: range / levels / spacing / cap | `src/lib/adapters/grid-trading.ts` |
+| **Yield Optimisation** | Venus `getAllMarkets` → `supplyRatePerBlock` | full-market APY ranking + your exposure | `src/lib/adapters/yield-optimisation.ts` |
+
+Example — the **yield-optimisation** adapter's real output:
 
 ```text
-README.md           project overview (this file)
-docs/
-  PRD.md            product requirements document
-  TECHNICAL.md      technical design
-  ENV.md            how to obtain each environment variable
-  DEPLOY.md         deployment runbook (Vercel + seller host)
-  AGENT-ADVANTAGE-REPORT.md   TermiX evidence report template
-  screenshots/      rendered product screenshots
+Best live supply rate today: TRX at 35.89%.
+1. TRX=35.89% | 2. UNI=23.62% | 3. ETH=17.34% | 4. wBETH=10.19% | 5. SXP=1.75%
+Markets scanned=48 | BNB (live price)=$600.00
 ```
 
-## Status
+All four share one `ServiceAdapter` shell (`src/lib/service-adapter.ts`) with a
+common on-chain harness (`src/lib/adapters/venus.ts`). They never move funds.
 
-**Working end-to-end across all four categories.** On BSC testnet: real ERC-8004
-discovery (from 8004scan), a real ERC-8183 escrowed hire (denominated in `$U`),
-a provider-signed negotiation quote, a live read of the chosen capability
-(health factor / rebalancing / grid plan / yield APY), and optimistic settlement.
-The demo runs against a custom ERC-8183 deployment with a **9-second** dispute
-window so the full loop is presentable live.
-
-## Live demo
-
-The frontend (`/`) is a **marketplace + one-click trial**:
+## 4. How a stranger uses it
 
 1. **Discover** — pick a category tab (Health Factor / Rebalancing / Grid
-   Trading / Yield Optimisation). Real ERC-8004 agents are pulled live from
-   8004scan, with owner, verified badge, score, feedback and protocols.
-2. **Compare** — open a card to see full provenance, then run a bounded trial.
-3. **Run a trial** — connect a wallet, sign, escrow 1 U, and the seller reads the
-   live on-chain data for that category and submits evidence on-chain.
-4. **Verify & decide** — after a 9-second optimistic window the job settles and
-   escrow releases; you see the deterministic report and decide whether to stop,
-   re-run, or (in a future limited-execute stage) grant bounded authority.
+   Trading / Yield Optimisation). Real ERC-8004 agents are pulled **live** from
+   8004scan with owner, verified badge, trust score, feedback, avg and protocols.
+2. **Compare** — open a card to read full provenance.
+3. **Run a bounded trial** — connect a wallet, sign, escrow `1 U`; the seller
+   reads the live on-chain data for that category and submits evidence on-chain.
+4. **Verify & decide** — after a **9-second** optimistic window the job settles,
+   escrow releases, and you see the deterministic report.
+
+## 5. Architecture
+
+```text
+Browser (Next.js / injected window.ethereum)
+   │  /api/agents (8004scan discovery)
+   │  /api/hire  (create + register + fund ERC-8183)
+   │  /api/job/:id , /api/settle
+   ▼
+API layer
+   ├─ 8004scan   real ERC-8004 agent discovery + reputation
+   ├─ ERC-8183   escrow: createJob → registerJob → setBudget → fund → submit → settle
+   └─ seller-runner (Fly, headless poll; 5s)
+        dispatches the category ServiceAdapter
+           → reads real data (Venus / balances / prices)
+           → submits {model, evidenceKind} deliverable on-chain
+   ▼
+BSC testnet (custom ERC-8183 stack, 9s dispute window; $U escrow)
+   + BSC mainnet (the read-only wallet-authorization security scan)
+```
+
+The seller side is a **headless polling loop** (`src/lib/seller-runner.ts`), not
+an HTTP server — it is transport-agnostic and runs on a single Fly machine.
+
+## 6. Repo layout
+
+```text
+README.md                 project overview (this file)
+docs/
+  PRD.md                  product requirements document
+  TECHNICAL.md            technical design
+  ENV.md                  how to obtain each environment variable
+  DEPLOY.md               deployment runbook
+  AGENT-ADVANTAGE-REPORT.md   TermiX evidence report (filled)
+  screenshots/            rendered product screenshots
+src/
+  app/
+    page.tsx              landing + marketplace + live trial
+    api/
+      agents/             live 8004scan discovery
+      hire/               create + fund a trial
+      job/[jobId]/        live job + evidence snapshot
+      settle/             finalise after the dispute window
+      deliverable/[jobId]/ deliverable lookup
+  lib/
+    erc8183.ts            buyer-side hire (create/register/fund, signed quote)
+    job-reader.ts         read job + recompute the evidence report
+    seller-runner.ts      seller polling loop (category dispatch)
+    discovery.ts          8004scan typed client
+    adapter-registry.ts   maps category → ServiceAdapter
+    adapters/  venus.ts (shared harness) + health-factor / rebalancing /
+               grid-trading / yield-optimisation
+    domain.ts             TrialSpec / Session / ReportEvidence
+  components/
+    marketplace.tsx       category tabs + real agent cards + detail view
+    live-trial.tsx        connect → sign → hire → poll → 9s settle
+    evidence-card.tsx     generic deterministic report renderer
+scripts/
+  demo.ts / hire.ts / settle.ts / security-check.ts / register-agent.ts
+```
+
+## 7. Screenshots
 
 ![PROBATION landing](docs/screenshots/home-top.png)
 
-![PROBATION full page](docs/screenshots/home-full.png)
+![PROBATION market discovery](docs/screenshots/home-full.png)
 
-![PROBATION trial complete](docs/screenshots/trial-complete.png)
+![PROBATION trial complete (health factor)](docs/screenshots/trial-complete.png)
 
-Terminal equivalent (one command, full loop):
+## 8. Agent Advantage Report (TermiX)
 
-```bash
-pnpm demo 1          # 1 U budget: hire → evidence → 9s window → settle
-pnpm hire 1          # buyer side only (create + fund)
-pnpm settle <jobId>  # finalise after the dispute window
-pnpm security-check 0x…   # read-only wallet authorization scan (Agent Advantage Report)
-```
+`docs/AGENT-ADVANTAGE-REPORT.md` is filled with **real measured runs** for the
+three required experiments (rebalancing, yield comparison, wallet-authorization
+security check), each run **both ways** (with vs without an agent) with verbatim
+terminal output attached:
 
-The **Agent Advantage Report** (`docs/AGENT-ADVANTAGE-REPORT.md`) is filled with
-real, measured runs for all three TermiX experiments (rebalancing, yield
-comparison, wallet-authorization security check) — each with the verbatim
-terminal output attached and the manual baseline for comparison.
+| Task | With PROBATION agent | Without (manual) |
+|---|---|---|
+| LP rebalancing | 0.25s, deterministic plan | ~10 min (estimate), no record |
+| Yield comparison | 3.3s, scans **all 48** markets | ~8 min (estimate), partial |
+| Security check | 4.9s, 12 token×spender reads | ~20 min (estimate), error-prone |
 
-## Custom ERC-8183 deployment (BSC testnet, 9s window)
+The security positive-detection path (a wallet with non-zero allowances) is
+honestly marked **待测 (pending)** — not fabricated.
 
-The official BSC testnet ERC-8183 `OptimisticPolicy` has an immutable 900-second
+## 9. Staged authorization & Altana status
+
+- **Observe stage (shipped)** — the trial grants a session with **empty
+  allowlist + 0 U spend cap**, so the agent holds **no asset-moving authority**.
+- **Limited-execute (designed, not yet on-chain)** — a bounded Altana EIP-7702
+  session key (allowlist / spend cap / expiry / on-chain Keystore registration /
+  one-click revoke). This is documented in `docs/TECHNICAL.md` and surfaced in
+  the UI, but we do **not** claim live session-key transactions yet.
+
+## 10. Custom ERC-8183 deployment (BSC testnet, 9s window)
+
+The official BSC testnet ERC-8183 `OptimisticPolicy` has an immutable 900s
 dispute window and the official Router's policy whitelist is owner-only, so a
-shorter window cannot be used there. The demo therefore runs against a
-self-deployed ERC-8183 stack:
+shorter window cannot be used there. The demo runs against a self-deployed
+stack:
 
 | Contract | Address | Note |
 |---|---|---|
@@ -130,7 +220,7 @@ self-deployed ERC-8183 stack:
 - SDK override env vars: `ERC8183_COMMERCE_ADDRESS`, `ERC8183_ROUTER_ADDRESS`,
   `ERC8183_POLICY_ADDRESS` (see `.env.example`).
 
-## On-chain records
+## 11. On-chain records
 
 | Job | Stack | Escrow | Result | Evidence submit tx |
 |---|---|---|---|---|
@@ -141,25 +231,51 @@ self-deployed ERC-8183 stack:
 | 6 | custom | 1 U | COMPLETED | `0xdb3164194f327d72535ac81c68f588a924f93e230d334111fb3b822074209eb9` (yield) |
 | 7 | custom | 1 U | COMPLETED | `0xea89579558f8451a14e72709dc9cac99f84efcb202a640e4f5383ffe4aa7a2ea` (yield) |
 
-On the same custom stack, category trials run end-to-end as well — e.g. a
-yield-optimisation trial that enumerated all Venus markets, ranked live supply
-APY (TRX at ~35.9% top), and settled in the 9s window. Submit hashes above are
-read from the seller-runner logs; verify them on-chain via the testnet explorer
-or the SDK rather than trusting a copied hash.
+Category trials run end-to-end on the custom stack (e.g. a yield trial that
+enumerated all Venus markets, ranked live supply APY, and settled in the 9s
+window). Submit hashes are read from the seller-runner logs; verify them on-chain
+rather than trusting a copied hash.
 
-## Getting started
+## 12. Getting started
 
 ```bash
 cp .env.example .env   # then fill each value — see docs/ENV.md
 pnpm install
-pnpm dev               # frontend (live trial)
+pnpm dev               # frontend (marketplace + live trial)
 pnpm seller-runner     # provider side (poll + submit deliverable)
 ```
 
-## Stack
+Terminal equivalent (one command, full loop):
 
-- Frontend: Next.js (App Router) / React / TypeScript; injected wallet (`window.ethereum`)
-- Onchain: `@bnbagent/sdk` (ERC-8004 identity / ERC-8183 hire & escrow / signed quotes)
-- Discovery: 8004scan API (ERC-8004)
-- Authorization: staged authority — observe stage grants a session with empty allowlist + 0 U spend cap (no asset-moving authority). The Altana EIP-7702 limited-execute session-key path (on-chain Keystore registration + one-click revoke) is designed and documented, not yet deployed on-chain.
-- Network: BSC testnet (demo stack) + mainnet addresses for the security scan
+```bash
+pnpm demo 1          # 1 U budget: hire → evidence → 9s window → settle
+pnpm hire 1          # buyer side only (create + fund)
+pnpm settle <jobId>  # finalise after the dispute window
+pnpm security-check 0x…   # read-only wallet authorization scan (Agent Advantage Report)
+```
+
+## 13. Stack
+
+- **Frontend**: Next.js (App Router) / React / TypeScript; injected wallet
+  (`window.ethereum`, not wagmi/connectors — avoids a Coinbase CDP dependency).
+- **Onchain**: `@bnbagent/sdk` (ERC-8004 identity / ERC-8183 hire & escrow /
+  signed quotes).
+- **Discovery**: 8004scan API (real ERC-8004 agents, ~200k+).
+- **Authorization**: staged authority — observe grants empty allowlist + 0 U
+  spend cap; Altana EIP-7702 limited-execute session path is designed/documented.
+- **Network**: BSC testnet (demo stack) + mainnet reads for the security scan.
+
+## 14. Docs index
+
+| Doc | Purpose |
+|---|---|
+| [PRD.md](docs/PRD.md) | Product requirements & four-category bar |
+| [TECHNICAL.md](docs/TECHNICAL.md) | Architecture, adapters, state machine, status |
+| [ENV.md](docs/ENV.md) | How to obtain each env var |
+| [DEPLOY.md](docs/DEPLOY.md) | Vercel + seller-host deployment runbook |
+| [AGENT-ADVANTAGE-REPORT.md](docs/AGENT-ADVANTAGE-REPORT.md) | TermiX evidence report (filled) |
+
+---
+
+PROBATION · Evidence Before Trust · Built for the BNB Chain “Smart Money Era”
+hackathon.
