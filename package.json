@@ -13,7 +13,8 @@
     "register-agent": "tsx scripts/register-agent.ts",
     "security-check": "tsx scripts/security-check.ts",
     "hire": "tsx scripts/hire.ts",
-    "settle": "tsx scripts/settle.ts"
+    "settle": "tsx scripts/settle.ts",
+    "demo": "tsx scripts/demo.ts"
   },
   "dependencies": {
     "@bnbagent/sdk": "^0.5.5",
