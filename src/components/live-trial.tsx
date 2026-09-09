@@ -10,7 +10,9 @@ import {
   signWalletMessage,
   switchToBscTestnet,
 } from "@/lib/wallet";
-import { EvidenceCard, type HealthEvidence } from "./evidence-card";
+import { EvidenceCard } from "./evidence-card";
+import type { Category, ReportEvidence } from "@/lib/domain";
+import { CATEGORY_META, CATEGORY_ORDER } from "@/lib/category-meta";
 
 type Phase =
   | "idle"
@@ -32,12 +34,21 @@ interface JobSnapshot {
   provider: string;
   client: string;
   subject: string;
-  evidence: HealthEvidence | null;
+  category: Category;
+  report: ReportEvidence | null;
 }
 
 const DISPUTE_WINDOW_S = 9;
 
-export function LiveTrial({ providerAddress }: { providerAddress: string }) {
+export function LiveTrial({
+  providerAddress,
+  category,
+  onCategoryChange,
+}: {
+  providerAddress: string;
+  category: Category;
+  onCategoryChange: (c: Category) => void;
+}) {
   const [address, setAddress] = useState<`0x${string}` | null>(null);
   const [chainId, setChainId] = useState<number>(0);
   const [phase, setPhase] = useState<Phase>("idle");
@@ -141,7 +152,8 @@ export function LiveTrial({ providerAddress }: { providerAddress: string }) {
     settleSent.current = false;
     setPhase("signing");
     try {
-      const message = `PROBATION: authorize a bounded health-factor monitor trial for ${address} on BSC testnet (fee 1 U, observe stage).`;
+      const meta = CATEGORY_META[category];
+      const message = `PROBATION: authorize a bounded ${meta.label.toLowerCase()} trial (category=${category}) for ${address} on BSC testnet (fee 1 U, observe stage).`;
       const signature = await signWalletMessage(message, address);
 
       setPhase("hiring");
@@ -150,8 +162,8 @@ export function LiveTrial({ providerAddress }: { providerAddress: string }) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           provider: providerAddress,
-          description:
-            "Monitor this lending position's health factor (observe stage)",
+          description: `PROBATION ${meta.label} trial (category=${category}, observe stage)`,
+          category,
           budget: "1000000000000000000", // 1 U
           signer: address,
           signature,
@@ -170,7 +182,8 @@ export function LiveTrial({ providerAddress }: { providerAddress: string }) {
         provider: providerAddress,
         client: address,
         subject: address,
-        evidence: null,
+        category,
+        report: null,
       });
       setPhase("running");
     } catch (err) {
@@ -210,6 +223,23 @@ export function LiveTrial({ providerAddress }: { providerAddress: string }) {
 
   return (
     <div className="card" style={{ padding: "1.75rem" }}>
+      <div className="cat-tabs" style={{ marginBottom: "1.5rem" }}>
+        {CATEGORY_ORDER.map((c) => (
+          <button
+            key={c}
+            className={`cat-tab ${category === c ? "active" : ""}`}
+            onClick={() => {
+              onCategoryChange(c);
+              setJob(null);
+              setError(null);
+              settleSent.current = false;
+              if (phase !== "idle" && phase !== "error") setPhase("idle");
+            }}
+          >
+            {CATEGORY_META[c].label}
+          </button>
+        ))}
+      </div>
       <div
         style={{
           display: "flex",
@@ -230,17 +260,15 @@ export function LiveTrial({ providerAddress }: { providerAddress: string }) {
           >
             <span className="pill">
               <span className="dot" />
-              Health Factor Monitoring
+              {CATEGORY_META[category].label}
             </span>
-            <span className="pill">observe · read-only</span>
+            <span className="pill">{CATEGORY_META[category].allowed}</span>
           </div>
           <h3 style={{ margin: "0.75rem 0 0.5rem", fontSize: "1.35rem" }}>
-            probation-health-factor-monitor
+            {CATEGORY_META[category].agentId}
           </h3>
           <p className="muted" style={{ margin: 0, fontSize: "0.95rem" }}>
-            Watches a lending position and reports its live Venus health
-            factor — flagging it at-risk the moment shortfall exceeds zero.
-            Self-custodial; no funds move in the observe stage.
+            {CATEGORY_META[category].description}
           </p>
         </div>
 
@@ -333,8 +361,8 @@ export function LiveTrial({ providerAddress }: { providerAddress: string }) {
               </div>
               <div className="t-sub">
                 {isSubmitted
-                  ? "Venus health factor read and submitted on-chain"
-                  : "reading live Venus account liquidity"}
+                  ? `${CATEGORY_META[category].label} read and submitted on-chain`
+                  : `reading live on-chain ${CATEGORY_META[category].label.toLowerCase()} data`}
               </div>
             </div>
           </div>
@@ -361,8 +389,8 @@ export function LiveTrial({ providerAddress }: { providerAddress: string }) {
         </div>
       )}
 
-      {job?.evidence && isSubmitted && (
-        <EvidenceCard evidence={job.evidence} account={job.subject || job.client} />
+      {job?.report && isSubmitted && (
+        <EvidenceCard report={job.report} account={job.subject || job.client} />
       )}
 
       {isDone && (
@@ -376,6 +404,38 @@ export function LiveTrial({ providerAddress }: { providerAddress: string }) {
           <p className="muted" style={{ margin: "0.4rem 0 1rem", fontSize: "0.95rem" }}>
             You authorized this with your wallet. Evidence first, trust second:
             stop here, run another bounded trial, or grant broader authority.
+          </p>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+              gap: "0.6rem",
+              marginBottom: "1rem",
+            }}
+          >
+            <div className="metric">
+              <div className="k">Stage</div>
+              <div className="v">Observe (read-only)</div>
+            </div>
+            <div className="metric">
+              <div className="k">Allowlist</div>
+              <div className="v">empty</div>
+            </div>
+            <div className="metric">
+              <div className="k">Spend cap</div>
+              <div className="v">0 U</div>
+            </div>
+            <div className="metric">
+              <div className="k">Expiry</div>
+              <div className="v">single trial</div>
+            </div>
+          </div>
+          <p className="faint" style={{ fontSize: "0.8rem", margin: "0 0 1rem" }}>
+            This trial grants the agent <strong>no</strong> asset-moving
+            authority. Broader access would go through the limited-execute stage
+            (an Altana EIP-7702 session key with allowlist, spend cap, expiry,
+            on-chain registration, and one-click revoke) — designed but not yet
+            deployed on-chain.
           </p>
           <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
             <button className="btn btn-ghost" onClick={run}>

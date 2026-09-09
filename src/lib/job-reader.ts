@@ -1,5 +1,6 @@
 import { ERC8183Client, EVMWalletProvider, JobStatus, loadEnv } from "@bnbagent/sdk";
-import { readHealthFactor } from "./adapters/health-factor";
+import type { Category, ReportEvidence, Session } from "./domain";
+import { getAdapter } from "./adapter-registry";
 
 export interface JobSnapshot {
   jobId: number;
@@ -11,11 +12,35 @@ export interface JobSnapshot {
   client: string;
   /** The account the evidence was computed for (the user's connected wallet). */
   subject: string;
-  evidence: {
-    liquidity: string;
-    shortfall: string;
-    status: "healthy" | "at-risk";
-  } | null;
+  category: Category;
+  report: ReportEvidence | null;
+}
+
+const CATEGORY_SET = new Set<Category>([
+  "rebalancing",
+  "grid-trading",
+  "yield-optimisation",
+  "health-factor-monitoring",
+]);
+
+function categoryFor(description: string): Category {
+  const match = /category=([a-z-]+)/.exec(description)?.[1];
+  if (match && CATEGORY_SET.has(match as Category)) {
+    return match as Category;
+  }
+  return "health-factor-monitoring";
+}
+
+function sessionFor(subject: `0x${string}`): Session {
+  return {
+    sessionKey: subject,
+    wallet: subject,
+    allowlist: [],
+    spendCap: 0n,
+    expiry: BigInt(Math.floor(Date.now() / 1000)) + 3600n,
+    keystoreRef: "erc8183-client",
+    revoked: false,
+  };
 }
 
 let clientPromise: Promise<ERC8183Client> | null = null;
@@ -47,15 +72,17 @@ export async function readJob(jobId: number): Promise<JobSnapshot> {
   const subject = (monitor ??
     job.client) as `0x${string}`;
 
+  const category = categoryFor(description);
   const submitted = job.status >= JobStatus.SUBMITTED;
-  let evidence: JobSnapshot["evidence"] = null;
+  let report: ReportEvidence | null = null;
   if (submitted) {
-    const hf = await readHealthFactor(subject);
-    evidence = {
-      liquidity: hf.liquidity.toString(),
-      shortfall: hf.shortfall.toString(),
-      status: hf.status,
-    };
+    // Recompute the current, deterministic report for this category so the
+    // buyer's evidence card reflects the latest real on-chain state.
+    const { evidence } = await getAdapter(category).run(
+      String(jobId),
+      sessionFor(subject),
+    );
+    report = evidence.report ?? null;
   }
 
   return {
@@ -67,7 +94,8 @@ export async function readJob(jobId: number): Promise<JobSnapshot> {
     provider: job.provider,
     client: job.client,
     subject,
-    evidence,
+    category,
+    report,
   };
 }
 

@@ -69,20 +69,26 @@ docs/
 
 ## Status
 
-**Working end-to-end.** A live self-hire loop is running on BSC testnet: ERC-8004
-discovery, a real ERC-8183 escrowed hire (denominated in `$U`), a
-provider-signed negotiation quote, an on-chain Venus health-factor read, and
-optimistic settlement. The demo runs against a custom ERC-8183 deployment with a
-**9-second** dispute window so the full loop is presentable live.
+**Working end-to-end across all four categories.** On BSC testnet: real ERC-8004
+discovery (from 8004scan), a real ERC-8183 escrowed hire (denominated in `$U`),
+a provider-signed negotiation quote, a live read of the chosen capability
+(health factor / rebalancing / grid plan / yield APY), and optimistic settlement.
+The demo runs against a custom ERC-8183 deployment with a **9-second** dispute
+window so the full loop is presentable live.
 
 ## Live demo
 
-The frontend (`/`) is a one-click product demo:
+The frontend (`/`) is a **marketplace + one-click trial**:
 
-1. **Run a trial** — escrows 1 U and creates an on-chain ERC-8183 job.
-2. The seller agent reads the position's live Venus health factor and submits
-   evidence on-chain.
-3. After a 9-second optimistic window the job settles and escrow is released.
+1. **Discover** — pick a category tab (Health Factor / Rebalancing / Grid
+   Trading / Yield Optimisation). Real ERC-8004 agents are pulled live from
+   8004scan, with owner, verified badge, score, feedback and protocols.
+2. **Compare** — open a card to see full provenance, then run a bounded trial.
+3. **Run a trial** — connect a wallet, sign, escrow 1 U, and the seller reads the
+   live on-chain data for that category and submits evidence on-chain.
+4. **Verify & decide** — after a 9-second optimistic window the job settles and
+   escrow releases; you see the deterministic report and decide whether to stop,
+   re-run, or (in a future limited-execute stage) grant bounded authority.
 
 ![PROBATION landing](docs/screenshots/home-top.png)
 
@@ -98,6 +104,11 @@ pnpm hire 1          # buyer side only (create + fund)
 pnpm settle <jobId>  # finalise after the dispute window
 pnpm security-check 0x…   # read-only wallet authorization scan (Agent Advantage Report)
 ```
+
+The **Agent Advantage Report** (`docs/AGENT-ADVANTAGE-REPORT.md`) is filled with
+real, measured runs for all three TermiX experiments (rebalancing, yield
+comparison, wallet-authorization security check) — each with the verbatim
+terminal output attached and the manual baseline for comparison.
 
 ## Custom ERC-8183 deployment (BSC testnet, 9s window)
 
@@ -128,6 +139,12 @@ self-deployed ERC-8183 stack:
 | 1 | custom | 1 U | COMPLETED | `0x2498029545457e71aa9b270dbb537e7caafa605334518454f1e24584f8f35872` |
 | 2 | custom | 1 U | COMPLETED | `0x4d7eca43bd737e0919eccdb37d674177e3c6941da1c37312a5ded7d293fbe88d` |
 
+On the same custom stack, category trials run end-to-end as well — e.g. a
+yield-optimisation trial that enumerated all Venus markets, ranked live supply
+APY (TRX at ~35.9% top), and settled in the 9s window. Read the submit/settle
+transactions directly off-chain via the SDK or a testnet explorer rather than
+trusting a copied hash.
+
 ## Getting started
 
 ```bash
@@ -139,8 +156,8 @@ pnpm seller-runner     # provider side (poll + submit deliverable)
 
 ## Stack
 
-- Frontend: Next.js (App Router) / React / TypeScript
+- Frontend: Next.js (App Router) / React / TypeScript; injected wallet (`window.ethereum`)
 - Onchain: `@bnbagent/sdk` (ERC-8004 identity / ERC-8183 hire & escrow / signed quotes)
 - Discovery: 8004scan API (ERC-8004)
-- Authorization: Altana EIP-7702 session keys (staged authority; observe stage ships read-only)
+- Authorization: staged authority — observe stage grants a session with empty allowlist + 0 U spend cap (no asset-moving authority). The Altana EIP-7702 limited-execute session-key path (on-chain Keystore registration + one-click revoke) is designed and documented, not yet deployed on-chain.
 - Network: BSC testnet (demo stack) + mainnet addresses for the security scan

@@ -56,5 +56,35 @@ export interface Evidence {
   artifactRef: string;
   chainRef?: string;
   timestamp: bigint;
+  /** Structured, renderable evidence payload. Populated by the observe-stage
+   * adapters so the buyer-facing evidence card renders real numbers. */
+  report?: ReportEvidence;
 }
 
+export type Verdict = "ok" | "warn" | "info";
+
+export interface Metric {
+  label: string;
+  value: string;
+  unit?: string;
+}
+
+/**
+ * A renderable evidence report. Every field is a real, deterministic read or
+ * computation — never a market screenshot or a claimed number.
+ */
+export interface ReportEvidence {
+  title: string;
+  /** One-line verdict summary. */
+  headline: string;
+  verdict: Verdict;
+  metrics: Metric[];
+  /** Where the data came from (contract + network). */
+  source: string;
+  /** Which on-chain reads produced it. */
+  method: string;
+  /** Block number the reads were taken at (deterministic re-run anchor). */
+  block: string;
+  /** Human note about the limits / what cannot be concluded. */
+  note: string;
+}

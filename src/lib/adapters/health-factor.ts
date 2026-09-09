@@ -20,6 +20,8 @@ export interface HealthFactor {
   shortfall: bigint;
   /** shortfall > 0 means the account is below its borrow limit (at risk). */
   status: "healthy" | "at-risk";
+  /** Block the read was taken at (deterministic re-run anchor). */
+  block: string;
 }
 
 /**
@@ -39,12 +41,15 @@ export async function readHealthFactor(
     transport: http(rpcUrl),
   });
 
-  const result = (await client.readContract({
+  const [result, block] = await Promise.all([
+    client.readContract({
     address: comptroller,
     abi: comptrollerAbi,
     functionName: "getAccountLiquidity",
     args: [account],
-  })) as [bigint, bigint, bigint];
+    }) as Promise<[bigint, bigint, bigint]>,
+    client.getBlockNumber(),
+  ]);
 
   const [errCode, liquidity, shortfall] = result;
   return {
@@ -52,6 +57,7 @@ export async function readHealthFactor(
     liquidity,
     shortfall,
     status: shortfall > 0n ? "at-risk" : "healthy",
+    block: block.toString(),
   };
 }
 
@@ -71,9 +77,8 @@ export const healthFactorAdapter: ServiceAdapter = {
   },
 
   async run(job: string, session: Session): Promise<RunResult> {
-    const { liquidity, shortfall, status } = await readHealthFactor(
-      session.wallet,
-    );
+    const { liquidity, shortfall, status, block } =
+      await readHealthFactor(session.wallet);
 
     const evidence: Evidence = {
       evidenceId: `${job}-health-factor`,
@@ -81,6 +86,24 @@ export const healthFactorAdapter: ServiceAdapter = {
       kind: "report",
       artifactRef: `health-factor-report-${job}`,
       timestamp: BigInt(Math.floor(Date.now() / 1000)),
+      report: {
+        title: "Lending health factor",
+        headline:
+          status === "healthy"
+            ? "Position is healthy — no liquidation risk detected."
+            : "Position is at risk of liquidation (shortfall > 0).",
+        verdict: status === "healthy" ? "ok" : "warn",
+        metrics: [
+          { label: "Liquidity", value: `$${(Number(liquidity) / 1e18).toFixed(2)}` },
+          { label: "Shortfall", value: `$${(Number(shortfall) / 1e18).toFixed(2)}` },
+          { label: "Status", value: status === "healthy" ? "Healthy" : "At risk" },
+        ],
+        source: "Venus Unitroller (BSC testnet)",
+        method: "getAccountLiquidity",
+        block,
+        note:
+          "Read-only. A healthy read is not a no-liquidation guarantee; monitoring is not a fix.",
+      },
     };
 
     return {

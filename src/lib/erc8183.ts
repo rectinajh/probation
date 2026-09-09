@@ -6,10 +6,47 @@ import {
   buildJobDescription,
 } from "@bnbagent/sdk/erc8183";
 
+const CATEGORY_TERMS: Record<string, { deliverables: string; quality: string; success: string[] }> = {
+  "health-factor-monitoring": {
+    deliverables: "Venus health-factor report (observe stage)",
+    quality:
+      "Read-only getAccountLiquidity; flag at-risk when shortfall > 0",
+    success: [
+      "Report liquidity, shortfall and health status for the account",
+    ],
+  },
+  "yield-optimisation": {
+    deliverables: "Live supply-APY ranking of Venus markets (observe stage)",
+    quality:
+      "Enumerate real markets; annualise supplyRatePerBlock; rank by APY",
+    success: [
+      "Report the highest live supply APY and the account's current exposure",
+    ],
+  },
+  rebalancing: {
+    deliverables: "On-chain balance rebalancing plan (observe stage)",
+    quality:
+      "Read real BNB/$U balances + live BNB price; compute target-weight delta",
+    success: [
+      "Report current vs target weight and the exact assets to buy/sell",
+    ],
+  },
+  "grid-trading": {
+    deliverables: "Bounded grid-trading plan (observe stage, no orders placed)",
+    quality:
+      "Read live BNB price + available stable capital; parameterise a capped grid",
+    success: [
+      "Report range, levels, spacing, capital-per-level, and no-execution note",
+    ],
+  },
+};
+
 export interface HireInput {
   provider: string;
   description: string;
   budget: bigint;
+  /** Trial category; drives which adapter the seller-runner runs. */
+  category?: string;
   /** The account to monitor (the user's connected wallet). The seller-runner
    * reads this from the job description and falls back to job.client. */
   monitorAddress?: string;
@@ -49,20 +86,22 @@ export async function hireAgent(input: HireInput) {
     walletProvider: wallet,
   });
 
+  const cat = CATEGORY_TERMS[input.category ?? "health-factor-monitoring"];
   const terms = input.terms ?? {
-    deliverables: "Health-factor report (observe stage)",
-    qualityStandards:
-      "Read-only Venus getAccountLiquidity; flag account at-risk when shortfall > 0",
-    successCriteria: [
-      "Report includes liquidity and shortfall for the account",
-    ],
+    deliverables: cat.deliverables,
+    qualityStandards: cat.quality,
+    successCriteria: cat.success,
   };
 
-  // The monitored account is the user's connected wallet. Embed it in the
-  // signed task text so the seller-runner can monitor the right position.
-  const monitorSuffix = input.monitorAddress
-    ? ` monitor account=${input.monitorAddress}`
-    : "";
+  // Embed the category + monitored account in the signed task text so the
+  // seller-runner can dispatch the right adapter and monitor the right position.
+  const tags = [
+    input.category ? `category=${input.category}` : "",
+    input.monitorAddress ? `monitor account=${input.monitorAddress}` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const monitorSuffix = tags ? ` ${tags}` : "";
 
   const request = new NegotiationRequest({
     taskDescription: `${input.description}${monitorSuffix}`,

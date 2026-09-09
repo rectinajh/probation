@@ -17,6 +17,7 @@ export async function POST(req: Request) {
       provider?: string;
       description?: string;
       budget?: string;
+      category?: string;
       signer?: string;
       signature?: string;
       message?: string;
@@ -51,6 +52,7 @@ export async function POST(req: Request) {
       provider,
       description,
       budget,
+      category: body?.category,
       // In the demo the monitored position is the user's connected wallet.
       monitorAddress: body?.signer,
     });

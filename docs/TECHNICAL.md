@@ -2,10 +2,17 @@
 
 ## 1. Stack
 
-- Frontend: Next.js (App Router) / React / TypeScript; wallet via wagmi + viem
+- Frontend: Next.js (App Router) / React / TypeScript; wallet via injected
+  `window.ethereum` (MetaMask / Rabby) through `src/lib/wallet.ts` + viem. We do
+  **not** use `wagmi/connectors` (it bundles Coinbase CDP and fails on a missing
+  `@x402/evm` dependency) — plain EIP-1193 keeps the bundle small and reliable.
 - Onchain: `@bnbagent/sdk` (Node ≥ 20; subpaths `./erc8004` `./erc8183` `./x402` `./storage` `./wallets` `./signing`)
 - Discovery: 8004scan API (ERC-8004, 200k+ registered agents, free Pro-tier 500 req/min during the hackathon)
-- Authorization: Altana `AltanaWalletProvider` (EIP-7702 session keys)
+- Authorization: staged authority. The **observe** stage ships read-only and
+  grants the agent a session with an **empty allowlist and a 0 U spend cap**, so
+  it holds no asset-moving authority. The limited-execute stage (a bounded
+  Altana EIP-7702 session key with on-chain Keystore registration + one-click
+  revoke) is **designed, documented, not yet deployed on-chain** — see §15.
 - Network: BSC testnet (MegaFuel gas sponsorship), mainnet per judging requirements
 - Backend/orchestration: Next.js API routes or a lightweight Node service
 
@@ -47,13 +54,19 @@ Fund flow: service fee via ERC-8183 escrow (`createJob → fund → settle`); ex
 
 | Category | Candidate source | Network | Call/payment | Deliverable | Permission | Verified |
 |---|---|---|---|---|---|---|
-| Rebalancing | Altana `PancakeSwap Liquidity` skill / BNB Agent Studio | BSC | ERC-8183 + session | Rebalance txs + before/after state | Limited execution | TBD |
-| Grid Trading | Official grid skill / minimal self-built seller | BSC | ERC-8183 | Order-set lifecycle | Limited execution | TBD |
-| Yield Optimisation | Altana `Aave V3 / Venus / Lista` skills | BSC | ERC-8183 | Migration or reason-not-to + basis | Limited execution | TBD |
-| Health Factor Monitoring | Altana `Venus / Aave` lending data | BSC | session (read-only + alerts) | Observation timestamps + trigger records | Observe (read-only) | TBD |
-| Security (report task) | Wallet authorization scan + checklist | BSC | read-only + revoke | Missed items + revocation results | Read-only + revoke | TBD |
+| Rebalancing | Venus balances + oracle (live BNB price) | BSC testnet | ERC-8183 (observe) | Current vs target weight + exact move | Observe (read-only) | **shipped** |
+| Grid Trading | Venus oracle price + user stable capital | BSC testnet | ERC-8183 (observe) | Bounded grid plan (range/levels/spacing/cap) | Observe (read-only) | **shipped** |
+| Yield Optimisation | Venus `getAllMarkets` supply APY | BSC testnet | ERC-8183 (observe) | Full-market APY ranking + exposure | Observe (read-only) | **shipped** |
+| Health Factor Monitoring | Venus `getAccountLiquidity` | BSC testnet | ERC-8183 (observe) | Liquidity/shortfall/status | Observe (read-only) | **shipped** |
+| Security (report task) | Wallet authorization scan + checklist | BSC mainnet | read-only + revoke | Missed items + revocation result | Read-only + revoke | **shipped** |
 
-Discovery pulls real listings from 8004scan; do **not** rebrand one chat service four ways to fake four capabilities.
+All four observe-stage adapters share one `ServiceAdapter` shell and read real
+on-chain data deterministically (`venus.ts` harness). They never move funds.
+Limited-execute (actual rebalance/grid/yield-migration transactions) is the next
+stage and requires a user-signed bounded session — designed, not yet on-chain.
+
+Discovery pulls real listings from 8004scan; each category is a genuinely
+different read-backed capability, **not** one chat service rebranded four ways.
 
 ## 5. Application state machine
 
@@ -167,7 +180,13 @@ Safety regression: `expired-session-rejected` — a call after session expiry mu
 
 ## 15. Decisions (resolved)
 
-- Custody: Altana self-custodial (§3).
+- Custody: Altana self-custodial (§3) — **status: designed**. The observe stage
+  grants a session with empty allowlist + zero spend cap (no asset-moving
+  authority). The full EIP-7702 on-chain Keystore registration + one-click
+  revoke path is documented here and surfaced in the UI, but is not yet deployed
+  on-chain, so we do not claim live session-key transactions.
 - Seller runner: orchestrator-embedded + retry (§11).
 - Deploy: single Next.js full-stack (API routes), public URL through judging.
 - Repo: GitHub (public).
+- Market discovery: 8004scan semantic search per category, rendered with rich
+  fields (owner, verified, score, feedback, protocols) via `src/lib/discovery.ts`.

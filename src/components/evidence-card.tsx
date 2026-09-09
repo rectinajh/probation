@@ -1,72 +1,64 @@
 "use client";
 
-function usd(raw: string): string {
-  const n = Number(raw) / 1e18;
-  return `$${n.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
-
-export interface HealthEvidence {
-  liquidity: string;
-  shortfall: string;
-  status: "healthy" | "at-risk";
-}
+import type { ReportEvidence } from "@/lib/domain";
 
 export function EvidenceCard({
-  evidence,
+  report,
   account,
 }: {
-  evidence: HealthEvidence;
+  report: ReportEvidence;
   account: string;
 }) {
-  const healthy = evidence.status === "healthy";
+  const classFor =
+    report.verdict === "ok" ? "ok" : report.verdict === "warn" ? "bad" : "neutral";
+  const label =
+    report.verdict === "ok" ? "Verified" : report.verdict === "warn" ? "Action needed" : "Info";
+
   return (
     <div className="card" style={{ marginTop: "1.25rem" }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem" }}>
         <div>
           <div className="faint" style={{ fontSize: "0.8rem" }}>
-            Venus · live on-chain read
+            {report.source} · live on-chain read
           </div>
           <div className="section-title" style={{ margin: "0.2rem 0 0" }}>
-            Health factor
+            {report.title}
           </div>
         </div>
-        <span className={`pill ${healthy ? "ok" : "bad"}`}>
+        <span className={`pill ${classFor}`}>
           <span className="dot" />
-          {healthy ? "Healthy" : "At risk"}
+          {label}
         </span>
       </div>
 
       <div
-        className={`verdict ${healthy ? "healthy" : "at-risk"}`}
+        className={`verdict ${classFor === "bad" ? "at-risk" : "healthy"}`}
         style={{ marginTop: "1rem" }}
       >
         <div>
           <div className="big">
-            {healthy ? "Position is safe" : "Position is at risk of liquidation"}
-          </div>
-          <div className="muted" style={{ fontSize: "0.9rem" }}>
-            {healthy
-              ? "Shortfall is 0 — the account is above its borrow limit."
-              : "Shortfall is greater than 0 — the account is below its borrow limit."}
+            {report.headline}
           </div>
         </div>
       </div>
 
       <div
-        className="grid grid-3"
-        style={{ marginTop: "1rem", gridTemplateColumns: "repeat(3, 1fr)" }}
+        className="grid"
+        style={{
+          marginTop: "1rem",
+          gridTemplateColumns: `repeat(auto-fit, minmax(150px, 1fr))`,
+          gap: "0.6rem",
+        }}
       >
-        <div className="metric">
-          <div className="k">Liquidity</div>
-          <div className="v">{usd(evidence.liquidity)}</div>
-        </div>
-        <div className="metric">
-          <div className="k">Shortfall</div>
-          <div className="v">{usd(evidence.shortfall)}</div>
-        </div>
+        {report.metrics.map((m) => (
+          <div className="metric" key={m.label}>
+            <div className="k">{m.label}</div>
+            <div className="v">
+              {m.value}
+              {m.unit ? ` ${m.unit}` : ""}
+            </div>
+          </div>
+        ))}
         <div className="metric">
           <div className="k">Account</div>
           <div className="v" style={{ fontSize: "0.9rem" }}>
@@ -76,8 +68,7 @@ export function EvidenceCard({
       </div>
 
       <p className="faint" style={{ fontSize: "0.8rem", marginTop: "1rem", marginBottom: 0 }}>
-        Read from the Venus Unitroller <code>getAccountLiquidity</code> — an
-        on-chain call, not a screenshot or a claimed number.
+        {report.method} · block {report.block}. {report.note}
       </p>
     </div>
   );

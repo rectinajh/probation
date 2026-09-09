@@ -14,6 +14,21 @@ import { getAdapter } from "./adapter-registry";
  */
 const DEFAULT_CATEGORY: Category = "health-factor-monitoring";
 
+const CATEGORY_SET = new Set<Category>([
+  "rebalancing",
+  "grid-trading",
+  "yield-optimisation",
+  "health-factor-monitoring",
+]);
+
+function categoryFor(description: string): Category {
+  const match = /category=([a-z-]+)/.exec(description)?.[1];
+  if (match && CATEGORY_SET.has(match as Category)) {
+    return match as Category;
+  }
+  return DEFAULT_CATEGORY;
+}
+
 function sessionFor(job: Record<string, unknown>): Session {
   // The monitored account is the connected user's wallet, which the buyer
   // embeds in the signed task text (`monitor account=<addr>`). Fall back to
@@ -63,7 +78,8 @@ export async function runSellerRunner() {
     jobOps,
     async (job) => {
       const jobId = job.jobId as number;
-      const adapter = getAdapter(DEFAULT_CATEGORY);
+      const description = String(job.description ?? "");
+      const adapter = getAdapter(categoryFor(description));
       const session = sessionFor(job);
       const { evidence } = await adapter.run(String(jobId), session);
 

@@ -1,4 +1,4 @@
-import { LiveTrial } from "@/components/live-trial";
+import { Marketplace } from "@/components/marketplace";
 
 export default function Home() {
   const providerAddress =
@@ -97,16 +97,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="trial" className="container block">
-        <h2 className="section-title">Live trial</h2>
-        <p className="section-sub">
-          A real, self-custodial health-factor monitor. It reads Venus account
-          liquidity on-chain and reports whether a lending position is healthy
-          or at risk of liquidation — then settles through the optimistic
-          window. Runs on BSC testnet with real $U escrow.
-        </p>
-        <LiveTrial providerAddress={providerAddress} />
-      </section>
+      <Marketplace providerAddress={providerAddress} />
 
       <section className="container block">
         <h2 className="section-title">Built honest by design</h2>
