@@ -35,6 +35,13 @@ interface JobSnapshot {
   client: string;
   subject: string;
   category: Category;
+  mode: "observe" | "execute";
+  execution: {
+    txHash: string;
+    amount: string;
+    to: string;
+    block: string;
+  } | null;
   report: ReportEvidence | null;
 }
 
@@ -186,6 +193,61 @@ export function LiveTrial({
         client: address,
         subject: address,
         category,
+        mode: "observe",
+        execution: null,
+        report: null,
+      });
+      setPhase("running");
+    } catch (err) {
+      setError((err as Error).message);
+      setPhase("error");
+    }
+  }
+
+  async function runExecute() {
+    if (!address) return;
+    setError(null);
+    setJob(null);
+    settleSent.current = false;
+    setPhase("signing");
+    try {
+      const cap = "1000000000000000000"; // 1 U
+      const expires = Math.floor(Date.now() / 1000) + 600;
+      const message = `PROBATION: authorize LIMITED EXECUTE — transfer up to 1 U (cap=${cap}) to ${address} on BSC testnet, expiry ${expires}. mode=execute`;
+      const signature = await signWalletMessage(message, address);
+
+      setPhase("hiring");
+      const res = await fetch("/api/hire", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          provider: providerAddress,
+          description: `PROBATION limited-execute (mode=execute, observe stage complete)`,
+          category,
+          mode: "execute",
+          execTo: address,
+          execCap: cap,
+          budget: "1000000000000000000",
+          signer: address,
+          signature,
+          message,
+        }),
+      });
+      const data = (await res.json()) as { jobId?: string; error?: string };
+      if (!res.ok || !data.jobId) throw new Error(data.error ?? "hire failed");
+
+      setJob({
+        jobId: Number(data.jobId),
+        status: "FUNDED",
+        statusCode: 1,
+        budget: "1000000000000000000",
+        submittedAt: "0",
+        provider: providerAddress,
+        client: address,
+        subject: address,
+        category,
+        mode: "execute",
+        execution: null,
         report: null,
       });
       setPhase("running");
@@ -360,12 +422,22 @@ export function LiveTrial({
             <div className="ring">{isSubmitted ? "✓" : "2"}</div>
             <div>
               <div className="t-title">
-                {isSubmitted ? "Evidence produced" : "Agent producing evidence…"}
+                {isSubmitted
+                  ? job?.mode === "execute"
+                    ? "Bounded execution done"
+                    : "Evidence produced"
+                  : job?.mode === "execute"
+                    ? "Agent executing bounded action…"
+                    : "Agent producing evidence…"}
               </div>
               <div className="t-sub">
                 {isSubmitted
-                  ? `${CATEGORY_META[category].label} read and submitted on-chain`
-                  : `reading live on-chain ${CATEGORY_META[category].label.toLowerCase()} data`}
+                  ? job?.mode === "execute"
+                    ? "real on-chain transfer submitted (bounded by your authorization)"
+                    : `${CATEGORY_META[category].label} read and submitted on-chain`
+                  : job?.mode === "execute"
+                    ? "transferring the authorized budget on-chain"
+                    : `reading live on-chain ${CATEGORY_META[category].label.toLowerCase()} data`}
               </div>
             </div>
           </div>
@@ -394,6 +466,62 @@ export function LiveTrial({
 
       {job?.report && isSubmitted && (
         <EvidenceCard report={job.report} account={job.subject || job.client} />
+      )}
+
+      {job?.mode === "execute" && job?.execution?.txHash && isSubmitted && (
+        <div className="card" style={{ marginTop: "1.25rem" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem" }}>
+            <div>
+              <div className="faint" style={{ fontSize: "0.8rem" }}>
+                BSC testnet · real on-chain execution
+              </div>
+              <div className="section-title" style={{ margin: "0.2rem 0 0" }}>
+                Bounded transfer executed
+              </div>
+            </div>
+            <span className="pill ok">
+              <span className="dot" />
+              Executed
+            </span>
+          </div>
+          <div
+            className="grid"
+            style={{
+              marginTop: "1rem",
+              gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+              gap: "0.6rem",
+            }}
+          >
+            <div className="metric">
+              <div className="k">Amount</div>
+              <div className="v">{(Number(job.execution.amount) / 1e18).toFixed(2)} U</div>
+            </div>
+            <div className="metric">
+              <div className="k">To</div>
+              <div className="v" style={{ fontSize: "0.9rem" }}>
+                {job.execution.to.slice(0, 6)}…{job.execution.to.slice(-4)}
+              </div>
+            </div>
+            <div className="metric">
+              <div className="k">Block</div>
+              <div className="v">{job.execution.block}</div>
+            </div>
+          </div>
+          <p
+            className="faint"
+            style={{ fontSize: "0.8rem", marginTop: "1rem", marginBottom: 0 }}
+          >
+            Executed within the bound you signed (cap 1 U, expiry 10 min).{" "}
+            <a
+              href={`https://testnet.bscscan.com/tx/${job.execution.txHash}`}
+              target="_blank"
+              rel="noreferrer"
+              style={{ color: "var(--blue)", textDecoration: "underline" }}
+            >
+              tx {job.execution.txHash.slice(0, 10)}…{job.execution.txHash.slice(-8)}
+            </a>
+          </p>
+        </div>
       )}
 
       {isDone && (
@@ -434,20 +562,37 @@ export function LiveTrial({
             </div>
           </div>
           <p className="faint" style={{ fontSize: "0.8rem", margin: "0 0 1rem" }}>
-            This trial grants the agent <strong>no</strong> asset-moving
-            authority. Broader access would go through the limited-execute stage
-            (an Altana EIP-7702 session key with allowlist, spend cap, expiry,
-            on-chain registration, and one-click revoke) — designed but not yet
-            deployed on-chain.
+            This observe trial grants <strong>no</strong> asset-moving authority.
+            The limited-execute stage is now a real, bounded on-chain transfer
+            (cap + expiry you sign). The Altana EIP-7702 session-key on-chain
+            Keystore registration is the next production step.
           </p>
           <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
             <button className="btn btn-ghost" onClick={run}>
               Run another trial
             </button>
-            <button className="btn btn-primary" disabled>
-              Grant limited authority →
+            <button
+              className="btn btn-primary"
+              disabled={job?.mode !== "observe"}
+              onClick={runExecute}
+              title={
+                job?.mode === "observe"
+                  ? "Sign a bounded authorization; the agent then executes one real on-chain transfer within the cap."
+                  : "Available after completing an observe trial."
+              }
+            >
+              Grant limited authority → execute a bounded transfer
             </button>
           </div>
+          {job?.mode === "observe" && (
+            <p
+              className="faint"
+              style={{ fontSize: "0.8rem", margin: "0.6rem 0 0" }}
+            >
+              This grants a bounded session: cap 1 U, 10-min expiry. The agent
+              executes a real on-chain transfer within those bounds.
+            </p>
+          )}
           {settleTx && (
             <p
               className="faint"

@@ -18,6 +18,9 @@ export async function POST(req: Request) {
       description?: string;
       budget?: string;
       category?: string;
+      mode?: "observe" | "execute";
+      execTo?: string;
+      execCap?: string;
       signer?: string;
       signature?: string;
       message?: string;
@@ -53,6 +56,11 @@ export async function POST(req: Request) {
       description,
       budget,
       category: body?.category,
+      mode: body?.mode ?? "observe",
+      execute:
+        body?.mode === "execute" && body?.execTo && body?.execCap
+          ? { to: body.execTo, cap: BigInt(body.execCap) }
+          : undefined,
       // In the demo the monitored position is the user's connected wallet.
       monitorAddress: body?.signer,
     });

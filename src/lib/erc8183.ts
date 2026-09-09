@@ -47,6 +47,10 @@ export interface HireInput {
   budget: bigint;
   /** Trial category; drives which adapter the seller-runner runs. */
   category?: string;
+  /** observe (read-only) or execute (real bounded on-chain action). */
+  mode?: "observe" | "execute";
+  /** Bounded execution spec for mode=execute. */
+  execute?: { to: string; cap: bigint };
   /** The account to monitor (the user's connected wallet). The seller-runner
    * reads this from the job description and falls back to job.client. */
   monitorAddress?: string;
@@ -98,6 +102,9 @@ export async function hireAgent(input: HireInput) {
   const tags = [
     input.category ? `category=${input.category}` : "",
     input.monitorAddress ? `monitor account=${input.monitorAddress}` : "",
+    input.mode ? `mode=${input.mode}` : "",
+    input.execute ? `to=${input.execute.to}` : "",
+    input.execute ? `cap=${input.execute.cap.toString()}` : "",
   ]
     .filter(Boolean)
     .join(" ");

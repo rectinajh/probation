@@ -13,6 +13,14 @@ export interface JobSnapshot {
   /** The account the evidence was computed for (the user's connected wallet). */
   subject: string;
   category: Category;
+  mode: "observe" | "execute";
+  /** Real on-chain execution result (mode=execute). */
+  execution: {
+    txHash: string;
+    amount: string;
+    to: string;
+    block: string;
+  } | null;
   report: ReportEvidence | null;
 }
 
@@ -41,6 +49,35 @@ function sessionFor(subject: `0x${string}`): Session {
     keystoreRef: "erc8183-client",
     revoked: false,
   };
+}
+
+function modeFor(description: string): "observe" | "execute" {
+  return /mode=execute/.test(description) ? "execute" : "observe";
+}
+
+async function fetchExecutionEvidence(
+  jobId: number,
+): Promise<JobSnapshot["execution"]> {
+  const base = process.env.ERC8183_AGENT_URL;
+  if (!base) return null;
+  try {
+    const res = await fetch(`${base.replace(/\/$/, "")}/job/${jobId}/evidence`);
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      txHash?: string;
+      amount?: string;
+      to?: string;
+      block?: string;
+    };
+    return {
+      txHash: data.txHash ?? "",
+      amount: data.amount ?? "0",
+      to: data.to ?? "",
+      block: data.block ?? "",
+    };
+  } catch {
+    return null;
+  }
 }
 
 let clientPromise: Promise<ERC8183Client> | null = null;
@@ -73,9 +110,13 @@ export async function readJob(jobId: number): Promise<JobSnapshot> {
     job.client) as `0x${string}`;
 
   const category = categoryFor(description);
+  const mode = modeFor(description);
   const submitted = job.status >= JobStatus.SUBMITTED;
   let report: ReportEvidence | null = null;
-  if (submitted) {
+  let execution: JobSnapshot["execution"] = null;
+  if (submitted && mode === "execute") {
+    execution = await fetchExecutionEvidence(jobId);
+  } else if (submitted) {
     // Recompute the current, deterministic report for this category so the
     // buyer's evidence card reflects the latest real on-chain state.
     const { evidence } = await getAdapter(category).run(
@@ -95,6 +136,8 @@ export async function readJob(jobId: number): Promise<JobSnapshot> {
     client: job.client,
     subject,
     category,
+    mode,
+    execution,
     report,
   };
 }
