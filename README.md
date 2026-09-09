@@ -61,11 +61,20 @@ README.md           project overview (this file)
 docs/
   PRD.md            product requirements document
   TECHNICAL.md      technical design
+  ENV.md            how to obtain each environment variable
 ```
 
 ## Status
 
 **Planning / scaffolding.** The market shell, a single real hire loop, and an honest Agent Advantage Report are the v1 scope.
+
+## Getting started
+
+```bash
+cp .env.example .env   # then fill each value — see docs/ENV.md
+pnpm install
+pnpm dev
+```
 
 ## Planned stack
 
@@ -74,4 +83,3 @@ docs/
 - Discovery: 8004scan API (ERC-8004; free Pro-tier during the hackathon)
 - Authorization: Altana EIP-7702 session keys (allowlist / spend cap / expiry / revocation)
 - Network: BSC testnet (mainnet per judging requirements)
-
