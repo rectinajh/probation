@@ -6,7 +6,9 @@ Facing a pile of finance agents, a user sees marketing, ratings, and return scre
 
 > **I need evidence to trust you, but you demand I trust you before you'll give evidence.**
 
-PROBATION reverses the order: **evidence before trust, authority follows the user's decision.**
+It is compounded by three things: reputation and rankings can be gamed; past performance doesn't predict the user's specific task; and an agent's "proven advantage" is usually asserted rather than measured.
+
+PROBATION solves this by reversing the order: **evidence before trust, authority follows the user's decision.** The user buys a bounded trial, sees verifiable results, and only then decides whether to grant broader authority.
 
 ## 2. Goals & users
 
@@ -96,4 +98,3 @@ Three-state provenance labels: **provider claim / platform live test / third-par
 ## 10. Success metric
 
 Can a stranger — through PROBATION — pay a clear fee, grant limited authority, receive a result worth buying, and keep the choice to continue or leave?
-

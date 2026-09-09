@@ -1,0 +1,19 @@
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  background: #0b1020;
+  color: #e6e9f0;
+}
+
+a {
+  color: #7aa2ff;
+}
+
