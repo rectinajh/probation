@@ -72,6 +72,7 @@ export async function runSellerRunner() {
       }
       return {};
     },
-    { interval: 30 },
+    // 5s poll so a live demo settles fast (the policy dispute window is 9s).
+    { interval: 5 },
   );
 }
