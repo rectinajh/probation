@@ -13,8 +13,8 @@ export async function POST(req: Request) {
     if (!Number.isInteger(jobId) || jobId <= 0) {
       return NextResponse.json({ error: "invalid job id" }, { status: 400 });
     }
-    const status = await settleJob(jobId);
-    return NextResponse.json({ jobId, status });
+    const { status, txHash } = await settleJob(jobId);
+    return NextResponse.json({ jobId, status, txHash });
   } catch (err) {
     return NextResponse.json(
       { error: (err as Error).message },

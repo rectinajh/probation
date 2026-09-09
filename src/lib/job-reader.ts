@@ -99,9 +99,15 @@ export async function readJob(jobId: number): Promise<JobSnapshot> {
   };
 }
 
-export async function settleJob(jobId: number): Promise<string> {
+export async function settleJob(jobId: number): Promise<{
+  status: string;
+  txHash: string;
+}> {
   const c = await client();
-  await c.settle(BigInt(jobId));
+  const res = await c.settle(BigInt(jobId));
   const job = await c.getJob(BigInt(jobId));
-  return JobStatus[job.status];
+  return {
+    status: JobStatus[job.status],
+    txHash: res.transactionHash,
+  };
 }

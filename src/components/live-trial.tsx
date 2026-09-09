@@ -55,6 +55,7 @@ export function LiveTrial({
   const [job, setJob] = useState<JobSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(DISPUTE_WINDOW_S);
+  const [settleTx, setSettleTx] = useState<string | null>(null);
   const settleSent = useRef(false);
 
   const isConnected = !!address;
@@ -105,14 +106,16 @@ export function LiveTrial({
     if (!job || settleSent.current) return;
     settleSent.current = true;
     setPhase("settling");
+    setSettleTx(null);
     try {
       const res = await fetch("/api/settle", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ jobId: job.jobId }),
       });
-      const data = (await res.json()) as { error?: string };
+      const data = (await res.json()) as { error?: string; txHash?: string };
       if (!res.ok || data.error) throw new Error(data.error ?? "settle failed");
+      if (data.txHash) setSettleTx(data.txHash);
       const after = await fetch(`/api/job/${job.jobId}`).then((r) => r.json());
       setJob(after);
       setPhase("done");
@@ -445,6 +448,23 @@ export function LiveTrial({
               Grant limited authority →
             </button>
           </div>
+          {settleTx && (
+            <p
+              className="faint"
+              style={{ fontSize: "0.8rem", marginTop: "0.9rem", marginBottom: 0 }}
+            >
+              Settlement on-chain:{" "}
+              <a
+                href={`https://testnet.bscscan.com/tx/${settleTx}`}
+                target="_blank"
+                rel="noreferrer"
+                style={{ color: "var(--blue)", textDecoration: "underline" }}
+              >
+                tx {settleTx.slice(0, 10)}…{settleTx.slice(-8)}
+              </a>{" "}
+              (verifiable)
+            </p>
+          )}
         </div>
       )}
     </div>
