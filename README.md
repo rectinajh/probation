@@ -138,12 +138,14 @@ self-deployed ERC-8183 stack:
 | 1196 | official | 1 U | SUBMITTED | `0x6756c79928b045b44b1874cd27cb0c35fdb9db9f42f318df923d0cffb4d5bea9` (block 130039996) |
 | 1 | custom | 1 U | COMPLETED | `0x2498029545457e71aa9b270dbb537e7caafa605334518454f1e24584f8f35872` |
 | 2 | custom | 1 U | COMPLETED | `0x4d7eca43bd737e0919eccdb37d674177e3c6941da1c37312a5ded7d293fbe88d` |
+| 6 | custom | 1 U | COMPLETED | `0xdb3164194f327d72535ac81c68f588a924f93e230d334111fb3b822074209eb9` (yield) |
+| 7 | custom | 1 U | COMPLETED | `0xea89579558f8451a14e72709dc9cac99f84efcb202a640e4f5383ffe4aa7a2ea` (yield) |
 
 On the same custom stack, category trials run end-to-end as well — e.g. a
 yield-optimisation trial that enumerated all Venus markets, ranked live supply
-APY (TRX at ~35.9% top), and settled in the 9s window. Read the submit/settle
-transactions directly off-chain via the SDK or a testnet explorer rather than
-trusting a copied hash.
+APY (TRX at ~35.9% top), and settled in the 9s window. Submit hashes above are
+read from the seller-runner logs; verify them on-chain via the testnet explorer
+or the SDK rather than trusting a copied hash.
 
 ## Getting started
 
